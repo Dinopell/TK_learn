@@ -1,25 +1,22 @@
 #!/bin/bash
 
 # =================================================================
-# TK_learn 最终稳定版部署脚本
-# 修复内容：
-# 1. SpringBoot 接口 pending / 403
-# 2. Nginx proxy_pass rewrite 坑
-# 3. Docker 容器路径问题
-# 4. /deploy 文件下载 404
-# 5. Redis 持久化异常
-# 6. 权限问题
-# 7. HTTPS 支持
+# TK 子台最终部署脚本（动态项目版）
 # =================================================================
 
 # ========================= 配置区 =========================
+
 REPO_URL="git@github.com:Dinopell/TK_learn.git"
 
 DEPLOY_DIR="/home/ubuntu/app-deploy"
 
 REPO_DIR="$DEPLOY_DIR/repo_source"
 
-MYSQL_PWD="evnYJdkW02W2U!"
+MYSQL_PWD="MAmLvxD#uGD1UbSR"
+
+# 动态项目目录（核心）
+PROJECTS_DIR="$DEPLOY_DIR/dynamic-projects"
+
 # =========================================================
 
 set -e
@@ -30,39 +27,46 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${YELLOW}>>> 开始部署 TK_learn...${NC}"
+echo -e "${YELLOW}>>> 开始部署 TK 子台系统...${NC}"
 
 # =========================================================
 # 0. 系统优化
 # =========================================================
-echo -e "${YELLOW}>>> 优化系统内核...${NC}"
+
+echo -e "${YELLOW}>>> 优化系统参数...${NC}"
 
 sudo sysctl vm.overcommit_memory=1 || true
 
 # =========================================================
 # 1. 初始化目录
 # =========================================================
+
 echo -e "${YELLOW}>>> 初始化目录...${NC}"
 
 mkdir -p \
 $DEPLOY_DIR/html \
-$DEPLOY_DIR/html/sub-app \
 $DEPLOY_DIR/conf/ssl \
 $DEPLOY_DIR/mysql_data \
 $DEPLOY_DIR/redis_data \
 $DEPLOY_DIR/init \
-$DEPLOY_DIR/packages
+$PROJECTS_DIR
 
 # =========================================================
 # 2. 拉取代码
 # =========================================================
+
 echo -e "${YELLOW}>>> 拉取代码...${NC}"
 
 if [ ! -d "$REPO_DIR" ]; then
+
     git clone $REPO_URL $REPO_DIR
+
 else
+
     cd $REPO_DIR
+
     git pull origin main
+
 fi
 
 cd $REPO_DIR
@@ -74,24 +78,29 @@ cd $DEPLOY_DIR
 # =========================================================
 # 3. SQL 初始化
 # =========================================================
-echo -e "${YELLOW}>>> 初始化 SQL...${NC}"
+
+echo -e "${YELLOW}>>> 初始化数据库...${NC}"
 
 rm -f $DEPLOY_DIR/init/*.sql || true
 
 if [ -d "$REPO_DIR/sql" ]; then
+
     cp $REPO_DIR/sql/*.sql $DEPLOY_DIR/init/
+
 fi
 
 INIT_SQL_FILE="$DEPLOY_DIR/init/00_create_databases.sql"
 
-echo "CREATE DATABASE IF NOT EXISTS \`tk-master\` DEFAULT CHARACTER SET utf8mb4;" > $INIT_SQL_FILE
+echo "CREATE DATABASE IF NOT EXISTS \`tk-admin\` DEFAULT CHARACTER SET utf8mb4;" > $INIT_SQL_FILE
 
 for f in $DEPLOY_DIR/init/*.sql; do
 
     if [[ "$(basename "$f")" != "00_create_databases.sql" ]]; then
 
         if ! grep -iq "USE " "$f"; then
-            sed -i "1i USE \`tk-master\`;" "$f"
+
+            sed -i "1i USE \`tk-admin\`;" "$f"
+
         fi
 
     fi
@@ -101,9 +110,11 @@ done
 # =========================================================
 # 4. 生成 Nginx 配置
 # =========================================================
+
 echo -e "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
 cat <<EOF > $DEPLOY_DIR/conf/nginx.conf
+
 user nginx;
 
 worker_processes auto;
@@ -114,8 +125,9 @@ events {
 
 http {
 
-    include       /etc/nginx/mime.types;
-    default_type  application/octet-stream;
+    include /etc/nginx/mime.types;
+
+    default_type application/octet-stream;
 
     sendfile on;
 
@@ -132,7 +144,7 @@ http {
 
         listen 443 ssl http2;
 
-        ssl_certificate     /etc/nginx/ssl/server.crt;
+        ssl_certificate /etc/nginx/ssl/server.crt;
         ssl_certificate_key /etc/nginx/ssl/server.key;
 
         root /usr/share/nginx/html;
@@ -140,7 +152,7 @@ http {
         index index.html;
 
         # =====================================================
-        # 前端
+        # 管理后台
         # =====================================================
 
         location / {
@@ -149,39 +161,12 @@ http {
         }
 
         # =====================================================
-        # 子应用
-        # =====================================================
-
-        location /sub-app {
-
-            alias /usr/share/nginx/html/sub-app/;
-
-            index index.html;
-
-            try_files \$uri \$uri/ /sub-app/index.html;
-        }
-
-        # =====================================================
-        # 文件下载
-        # =====================================================
-
-        location /deploy/ {
-
-            alias /packages/;
-
-            autoindex on;
-        }
-
-        # =====================================================
-        # SpringBoot 接口代理
-        # 重要：
-        # 1. 不要 rewrite
-        # 2. proxy_pass 后必须带 /
+        # SpringBoot API
         # =====================================================
 
         location /prod-api/ {
 
-            proxy_pass http://backend:8099/;
+            proxy_pass http://backend:8080/;
 
             proxy_http_version 1.1;
 
@@ -193,13 +178,48 @@ http {
             proxy_connect_timeout 60s;
             proxy_read_timeout 60s;
         }
+
+        # =====================================================
+        # 动态项目（核心）
+        #
+        # 示例：
+        # /ajk23h1/
+        # /x8asd92/
+        #
+        # 实际映射：
+        # /dynamic-projects/ajk23h1/
+        # /dynamic-projects/x8asd92/
+        #
+        # 支持：
+        # Vue Router History 模式
+        # SPA 刷新不 404
+        # =====================================================
+
+        location ~ ^/([^/]+)(/.*)?$ {
+
+            # 排除 prod-api
+            if (\$1 = "prod-api") {
+                return 404;
+            }
+
+            # 动态项目根目录
+            root /dynamic-projects;
+
+            index index.html;
+
+            # SPA 支持
+            try_files \$uri \$uri/ /\$1/index.html;
+
+        }
     }
 }
+
 EOF
 
 # =========================================================
 # 5. 生成 Docker Compose
 # =========================================================
+
 echo -e "${YELLOW}>>> 生成 Docker Compose...${NC}"
 
 cat <<EOF > $DEPLOY_DIR/docker-compose.yml
@@ -247,6 +267,7 @@ services:
     container_name: app-deploy-backend-1
 
     depends_on:
+
       mysql:
         condition: service_healthy
 
@@ -259,7 +280,7 @@ services:
       - ./repo_source/springboot-app.jar:/app.jar
 
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-master?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-admin?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_PWD}
       - SPRING_REDIS_HOST=redis
@@ -268,7 +289,7 @@ services:
       java
       -Xms512m
       -Xmx1024m
-      -Dserver.port=8099
+      -Dserver.port=8080
       -jar
       /app.jar
 
@@ -289,7 +310,7 @@ services:
 
     volumes:
       - ./html:/usr/share/nginx/html
-      - ./packages:/packages
+      - ./dynamic-projects:/dynamic-projects
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./conf/ssl:/etc/nginx/ssl:ro
 
@@ -300,6 +321,7 @@ EOF
 # =========================================================
 # 6. HTTPS 证书
 # =========================================================
+
 echo -e "${YELLOW}>>> 检查 HTTPS 证书...${NC}"
 
 if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
@@ -316,9 +338,10 @@ if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
 fi
 
 # =========================================================
-# 7. 前端部署
+# 7. 部署管理后台前端
 # =========================================================
-echo -e "${YELLOW}>>> 部署前端...${NC}"
+
+echo -e "${YELLOW}>>> 部署管理后台前端...${NC}"
 
 if [ -f "$REPO_DIR/dist.zip" ]; then
 
@@ -338,6 +361,7 @@ fi
 # =========================================================
 # 8. 权限修复
 # =========================================================
+
 echo -e "${YELLOW}>>> 修复权限...${NC}"
 
 chown -R ubuntu:ubuntu $DEPLOY_DIR
@@ -346,12 +370,13 @@ chmod -R 777 $DEPLOY_DIR/redis_data
 
 chmod -R 755 $DEPLOY_DIR/html
 
-chmod -R 755 $DEPLOY_DIR/packages
+chmod -R 755 $PROJECTS_DIR
 
 # =========================================================
 # 9. 启动 Docker
 # =========================================================
-echo -e "${YELLOW}>>> 启动 Docker 容器...${NC}"
+
+echo -e "${YELLOW}>>> 启动 Docker 服务...${NC}"
 
 cd $DEPLOY_DIR
 
@@ -362,47 +387,58 @@ docker compose up -d
 # =========================================================
 # 10. 等待 MySQL
 # =========================================================
+
 echo -e "${YELLOW}>>> 等待 MySQL 启动...${NC}"
 
-sleep 15
+sleep 20
 
 # =========================================================
-# 11. 执行 SQL
+# 11. 导入 SQL
 # =========================================================
+
 echo -e "${YELLOW}>>> 导入 SQL...${NC}"
 
 docker exec -i app-deploy-mysql-1 \
 mysql -uroot -p"${MYSQL_PWD}" \
--e "CREATE DATABASE IF NOT EXISTS \`tk-master\` DEFAULT CHARACTER SET utf8mb4;"
+-e "CREATE DATABASE IF NOT EXISTS \`tk-admin\` DEFAULT CHARACTER SET utf8mb4;"
 
 for sql in $(ls $DEPLOY_DIR/init/*.sql | sort); do
 
     echo -e "${BLUE}>>> 执行: $sql${NC}"
 
     docker exec -i app-deploy-mysql-1 \
-    mysql -uroot -p"${MYSQL_PWD}" tk-master < "$sql" || true
+    mysql -uroot -p"${MYSQL_PWD}" tk-admin < "$sql" || true
 
 done
 
 # =========================================================
-# 12. 检查服务
+# 12. 检查状态
 # =========================================================
-echo -e "${YELLOW}>>> 检查服务状态...${NC}"
+
+echo -e "${YELLOW}>>> 检查 Docker 状态...${NC}"
 
 docker ps
 
 # =========================================================
 # 13. 完成
 # =========================================================
+
 echo -e "${GREEN}"
+
 echo "===================================================="
-echo "部署完成！"
+echo "TK 子台部署完成"
 echo ""
-echo "前端："
-echo "https://43.165.185.39"
+echo "管理后台："
+echo "https://你的IP/"
 echo ""
+echo "动态项目目录："
+echo "$PROJECTS_DIR"
 echo ""
-echo "文件下载："
-echo "https://43.165.185.39/deploy/"
+echo "动态项目访问方式："
+echo "https://你的IP/随机字符串/"
+echo ""
+echo "示例："
+echo "https://你的IP/ajk23h1/"
 echo "===================================================="
+
 echo -e "${NC}"
