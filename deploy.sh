@@ -1,196 +1,408 @@
 #!/bin/bash
 
 # =================================================================
-# TK_learn 终极全能部署脚本 (权限全自动修复 + 502 根治版)
-# =================================================================
-# 【配置区】
-REPO_URL="git@github.com:Dinopell/TK_learn.git"
-DEPLOY_DIR="/home/ubuntu/app-deploy"
-REPO_DIR="$DEPLOY_DIR/repo_source"
-MYSQL_PWD="evnYJdkW02W2U!"
+# TK_learn 最终稳定版部署脚本
+# 修复内容：
+# 1. SpringBoot 接口 pending / 403
+# 2. Nginx proxy_pass rewrite 坑
+# 3. Docker 容器路径问题
+# 4. /deploy 文件下载 404
+# 5. Redis 持久化异常
+# 6. 权限问题
+# 7. HTTPS 支持
 # =================================================================
 
+# ========================= 配置区 =========================
+REPO_URL="git@github.com:Dinopell/TK_learn.git"
+
+DEPLOY_DIR="/home/ubuntu/app-deploy"
+
+REPO_DIR="$DEPLOY_DIR/repo_source"
+
+MYSQL_PWD="evnYJdkW02W2U!"
+# =========================================================
+
 set -e
+
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
-# 0. 系统内核优化 (防止 Redis 因内存分配策略导致 502)
+echo -e "${YELLOW}>>> 开始部署 TK_learn...${NC}"
+
+# =========================================================
+# 0. 系统优化
+# =========================================================
 echo -e "${YELLOW}>>> 优化系统内核...${NC}"
+
 sudo sysctl vm.overcommit_memory=1 || true
 
-echo -e "${YELLOW}>>> 正在初始化部署环境...${NC}"
-# 预先创建目录，防止 Docker 用 root 身份自动创建空目录
-mkdir -p $DEPLOY_DIR/{html/sub-app,conf/ssl,mysql_data,redis_data,init,packages}
+# =========================================================
+# 1. 初始化目录
+# =========================================================
+echo -e "${YELLOW}>>> 初始化目录...${NC}"
 
-# 1. 拉取/更新代码
+mkdir -p \
+$DEPLOY_DIR/html \
+$DEPLOY_DIR/html/sub-app \
+$DEPLOY_DIR/conf/ssl \
+$DEPLOY_DIR/mysql_data \
+$DEPLOY_DIR/redis_data \
+$DEPLOY_DIR/init \
+$DEPLOY_DIR/packages
+
+# =========================================================
+# 2. 拉取代码
+# =========================================================
+echo -e "${YELLOW}>>> 拉取代码...${NC}"
+
 if [ ! -d "$REPO_DIR" ]; then
-    echo -e "${BLUE}>>> 首次克隆仓库...${NC}"
     git clone $REPO_URL $REPO_DIR
 else
-    echo -e "${BLUE}>>> 更新已有源码...${NC}"
-    cd $REPO_DIR && git pull origin main
+    cd $REPO_DIR
+    git pull origin main
 fi
-cd $REPO_DIR && git lfs pull || true
+
+cd $REPO_DIR
+
+git lfs pull || true
+
 cd $DEPLOY_DIR
 
-# 2. 数据库 SQL 处理 (强制同步 tk-master)
-echo -e "${BLUE}>>> 处理 SQL 脚本...${NC}"
-rm -f $DEPLOY_DIR/init/*.sql
-[ -d "$REPO_DIR/sql" ] && cp $REPO_DIR/sql/*.sql $DEPLOY_DIR/init/
+# =========================================================
+# 3. SQL 初始化
+# =========================================================
+echo -e "${YELLOW}>>> 初始化 SQL...${NC}"
+
+rm -f $DEPLOY_DIR/init/*.sql || true
+
+if [ -d "$REPO_DIR/sql" ]; then
+    cp $REPO_DIR/sql/*.sql $DEPLOY_DIR/init/
+fi
+
 INIT_SQL_FILE="$DEPLOY_DIR/init/00_create_databases.sql"
+
 echo "CREATE DATABASE IF NOT EXISTS \`tk-master\` DEFAULT CHARACTER SET utf8mb4;" > $INIT_SQL_FILE
+
 for f in $DEPLOY_DIR/init/*.sql; do
+
     if [[ "$(basename "$f")" != "00_create_databases.sql" ]]; then
+
         if ! grep -iq "USE " "$f"; then
-             sed -i "1i USE \`tk-master\`;" "$f"
+            sed -i "1i USE \`tk-master\`;" "$f"
         fi
+
     fi
+
 done
 
-# 3. 生成 Nginx 配置 (解决 403, 500, 502 及 CSP 问题)
-cat <<EOF > conf/nginx.conf
-user  nginx;
-worker_processes  auto;
-events { worker_connections 1024; }
+# =========================================================
+# 4. 生成 Nginx 配置
+# =========================================================
+echo -e "${YELLOW}>>> 生成 Nginx 配置...${NC}"
+
+cat <<EOF > $DEPLOY_DIR/conf/nginx.conf
+user nginx;
+
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
 http {
-    include       mime.types;
+
+    include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
-    sendfile      on;
+
+    sendfile on;
+
+    client_max_body_size 500m;
 
     server {
+
         listen 80;
+
         return 301 https://\$host\$request_uri;
     }
 
     server {
-        listen 443 ssl;
-        ssl_certificate /etc/nginx/ssl/server.crt;
+
+        listen 443 ssl http2;
+
+        ssl_certificate     /etc/nginx/ssl/server.crt;
         ssl_certificate_key /etc/nginx/ssl/server.key;
+
         root /usr/share/nginx/html;
+
         index index.html;
 
-        # 解决 alicdn 字体等外部资源加载失败的 CSP 策略
-        # add_header Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' *; font-src 'self' data: https://at.alicdn.com;";
+        # =====================================================
+        # 前端
+        # =====================================================
+
+        location / {
+
+            try_files \$uri \$uri/ /index.html;
+        }
+
+        # =====================================================
+        # 子应用
+        # =====================================================
 
         location /sub-app {
+
             alias /usr/share/nginx/html/sub-app/;
+
             index index.html;
+
             try_files \$uri \$uri/ /sub-app/index.html;
         }
 
+        # =====================================================
+        # 文件下载
+        # =====================================================
+
         location /deploy/ {
-            alias $DEPLOY_DIR/packages/;
+
+            alias /packages/;
+
             autoindex on;
         }
 
-        # 接口转发：去掉 rewrite 保证路径透传
+        # =====================================================
+        # SpringBoot 接口代理
+        # 重要：
+        # 1. 不要 rewrite
+        # 2. proxy_pass 后必须带 /
+        # =====================================================
+
         location /prod-api/ {
+
             proxy_pass http://backend:8099/;
+
+            proxy_http_version 1.1;
+
             proxy_set_header Host \$host;
             proxy_set_header X-Real-IP \$remote_addr;
             proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        }
+            proxy_set_header X-Forwarded-Proto \$scheme;
 
-        location / {
-            try_files \$uri \$uri/ /index.html;
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 60s;
         }
     }
 }
 EOF
 
-# 4. 生成 Docker Compose (含 Redis 稳定性修复)
-cat <<EOF > docker-compose.yml
+# =========================================================
+# 5. 生成 Docker Compose
+# =========================================================
+echo -e "${YELLOW}>>> 生成 Docker Compose...${NC}"
+
+cat <<EOF > $DEPLOY_DIR/docker-compose.yml
+
 services:
+
   mysql:
+
     image: mysql:8.0
+
+    container_name: app-deploy-mysql-1
+
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PWD}
+
     volumes:
       - ./mysql_data:/var/lib/mysql
       - ./init:/docker-entrypoint-initdb.d
+
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PWD}"]
       interval: 5s
       timeout: 5s
       retries: 20
+
     restart: always
 
   redis:
+
     image: redis:7.0-alpine
-    # 核心修复：防止 Redis 持久化失败导致后端 502
+
+    container_name: app-deploy-redis-1
+
     command: redis-server --stop-writes-on-bgsave-error no
+
     volumes:
       - ./redis_data:/data
+
     restart: always
 
   backend:
+
     image: eclipse-temurin:17-jdk-alpine
+
+    container_name: app-deploy-backend-1
+
     depends_on:
       mysql:
         condition: service_healthy
+
+      redis:
+        condition: service_started
+
+    working_dir: /
+
     volumes:
       - ./repo_source/springboot-app.jar:/app.jar
+
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-master?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_PWD}
       - SPRING_REDIS_HOST=redis
+
     command: >
-      /bin/sh -c "
-      until nc -z mysql 3306; do echo 'Waiting for MySQL...'; sleep 3; done;
-      exec java -Xms512m -Xmx1024m -Dserver.port=8099 -jar /app.jar
-      "
+      java
+      -Xms512m
+      -Xmx1024m
+      -Dserver.port=8099
+      -jar
+      /app.jar
+
     restart: always
 
   frontend:
+
     image: nginx:stable-alpine
-    ports: ["80:80", "443:443"]
+
+    container_name: app-deploy-frontend-1
+
     depends_on:
       - backend
+
+    ports:
+      - "80:80"
+      - "443:443"
+
     volumes:
       - ./html:/usr/share/nginx/html
+      - ./packages:/packages
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./conf/ssl:/etc/nginx/ssl:ro
+
     restart: always
+
 EOF
 
-# 5. 证书处理
-[ ! -f "conf/ssl/server.crt" ] && openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout conf/ssl/server.key -out conf/ssl/server.crt -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
+# =========================================================
+# 6. HTTPS 证书
+# =========================================================
+echo -e "${YELLOW}>>> 检查 HTTPS 证书...${NC}"
 
-# 6. 前端解压与平铺路径
+if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
+
+    openssl req \
+    -x509 \
+    -nodes \
+    -days 3650 \
+    -newkey rsa:2048 \
+    -keyout $DEPLOY_DIR/conf/ssl/server.key \
+    -out $DEPLOY_DIR/conf/ssl/server.crt \
+    -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
+
+fi
+
+# =========================================================
+# 7. 前端部署
+# =========================================================
+echo -e "${YELLOW}>>> 部署前端...${NC}"
+
 if [ -f "$REPO_DIR/dist.zip" ]; then
-    echo -e "${BLUE}>>> 处理前端静态资源...${NC}"
+
     rm -rf $DEPLOY_DIR/html/*
+
     unzip -o $REPO_DIR/dist.zip -d $DEPLOY_DIR/html/
+
     if [ -d "$DEPLOY_DIR/html/dist" ]; then
+
         mv $DEPLOY_DIR/html/dist/* $DEPLOY_DIR/html/ 2>/dev/null || true
+
         rm -rf $DEPLOY_DIR/html/dist
+
     fi
 fi
 
-# 7. 启动
-echo -e "${YELLOW}>>> 启动 Docker 容器...${NC}"
-docker compose up -d
+# =========================================================
+# 8. 权限修复
+# =========================================================
+echo -e "${YELLOW}>>> 修复权限...${NC}"
 
-# 8. 数据库同步
-echo -e "${BLUE}>>> 同步 SQL 变更...${NC}"
-docker exec -i app-deploy-mysql-1 mysql -uroot -p"${MYSQL_PWD}" -e "CREATE DATABASE IF NOT EXISTS \`tk-master\` DEFAULT CHARACTER SET utf8mb4;"
-for sql in $(ls $DEPLOY_DIR/init/*.sql | sort); do
-    docker exec -i app-deploy-mysql-1 mysql -uroot -p"${MYSQL_PWD}" tk-master < "$sql" || echo "Skip $sql"
-done
-
-# 9. 权限全自动化修复 (核心新增)
-echo -e "${YELLOW}>>> 正在修复目录权限...${NC}"
-# a. 将整个部署目录设为 ubuntu 所有，方便 scp 上传
 chown -R ubuntu:ubuntu $DEPLOY_DIR
-# b. 特别修正 Redis 数据目录权限，防止持久化 502 错误
+
 chmod -R 777 $DEPLOY_DIR/redis_data
-# c. 特别修正 Nginx 目录权限（Nginx 镜像默认用户 UID 为 101）
-chown -R 101:101 $DEPLOY_DIR/html
+
 chmod -R 755 $DEPLOY_DIR/html
 
-echo -e "${GREEN}>>> ====================================================${NC}"
-echo -e "${GREEN}>>> 部署成功！权限已自动修正。${NC}"
-echo -e "${GREEN}>>> 现在你可以直接使用 ubuntu 用户进行 scp 上传了。${NC}"
-echo -e "${GREEN}>>> ====================================================${NC}"
+chmod -R 755 $DEPLOY_DIR/packages
+
+# =========================================================
+# 9. 启动 Docker
+# =========================================================
+echo -e "${YELLOW}>>> 启动 Docker 容器...${NC}"
+
+cd $DEPLOY_DIR
+
+docker compose down || true
+
+docker compose up -d
+
+# =========================================================
+# 10. 等待 MySQL
+# =========================================================
+echo -e "${YELLOW}>>> 等待 MySQL 启动...${NC}"
+
+sleep 15
+
+# =========================================================
+# 11. 执行 SQL
+# =========================================================
+echo -e "${YELLOW}>>> 导入 SQL...${NC}"
+
+docker exec -i app-deploy-mysql-1 \
+mysql -uroot -p"${MYSQL_PWD}" \
+-e "CREATE DATABASE IF NOT EXISTS \`tk-master\` DEFAULT CHARACTER SET utf8mb4;"
+
+for sql in $(ls $DEPLOY_DIR/init/*.sql | sort); do
+
+    echo -e "${BLUE}>>> 执行: $sql${NC}"
+
+    docker exec -i app-deploy-mysql-1 \
+    mysql -uroot -p"${MYSQL_PWD}" tk-master < "$sql" || true
+
+done
+
+# =========================================================
+# 12. 检查服务
+# =========================================================
+echo -e "${YELLOW}>>> 检查服务状态...${NC}"
+
+docker ps
+
+# =========================================================
+# 13. 完成
+# =========================================================
+echo -e "${GREEN}"
+echo "===================================================="
+echo "部署完成！"
+echo ""
+echo "前端："
+echo "https://43.165.185.39"
+echo ""
+echo ""
+echo "文件下载："
+echo "https://43.165.185.39/deploy/"
+echo "===================================================="
+echo -e "${NC}"
