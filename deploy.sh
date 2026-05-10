@@ -87,22 +87,32 @@ http {
         listen 443 ssl;
         ssl_certificate      /etc/nginx/ssl/server.crt;
         ssl_certificate_key  /etc/nginx/ssl/server.key;
-        root /usr/share/nginx/html;
+        
+        # 核心修复：将 root 直接指向你的项目文件夹
+        # 这样浏览器请求 /static/... 时，Nginx 会去这个目录下找
+        root /usr/share/nginx/html/$DEPLOY_ID;
+        index index.html;
 
-        # 核心：修复静态资源路径匹配 (static 而非 assets)
-        location ~ ^/([^/]+)/static/(.*)$ {
-            alias /usr/share/nginx/html/\$1/static/\$2;
+        # 1. 优先匹配带 ID 的路径（为了兼容你现有的访问习惯）
+        location ~ ^/proj_([0-9]+)/(.*)$ {
+            alias /usr/share/nginx/html/proj_\$1/\$2;
+        }
+
+        # 2. 修复：处理浏览器直接请求根路径的静态资源
+        location /static/ {
+            root /usr/share/nginx/html/$DEPLOY_ID;
             autoindex off;
         }
 
         location /api/ {
             proxy_pass http://backend:8080/;
             proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
         }
 
-        location ~ ^/([^/]+)(/.*)?$ {
-            try_files \$uri \$uri/ /\$1/index.html /index.html;
+        # 3. 兜底处理
+        location / {
+            root /usr/share/nginx/html/$DEPLOY_ID;
+            try_files \$uri \$uri/ /index.html;
         }
     }
 }
