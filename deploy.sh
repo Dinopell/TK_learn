@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =================================================================
-# TK_learn 多库全能部署脚本 (生产级路径适配版)
+# TK_learn 终极全能部署脚本 (适配若依 8099 端口 & 数据库链路修复)
 # =================================================================
 # 【配置区】
 REPO_URL="git@github.com:Dinopell/TK_learn.git"
@@ -16,44 +16,24 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
-# 0. 权限检查
-if [ "$EUID" -ne 0 ]; then
-    echo -e "${BLUE}请使用 root 权限运行此脚本 (sudo ./deploy.sh)${NC}"
-    exit 1
-fi
-
-# 1. 环境清理与目录初始化
-echo -e "${YELLOW}>>> 正在清理旧环境...${NC}"
+# 1. 环境初始化
+echo -e "${YELLOW}>>> 清理旧环境并初始化目录...${NC}"
 docker compose -f $DEPLOY_DIR/docker-compose.yml down 2>/dev/null || true
-rm -rf $DEPLOY_DIR/mysql_data/*
 mkdir -p $DEPLOY_DIR/{html,conf/ssl,mysql_data,redis_data,init}
+chmod 755 /root $DEPLOY_DIR
 
-# 修正宿主机路径权限 (Docker 穿透)
-chmod 755 /root
-chmod 755 $DEPLOY_DIR
-
-# 2. 生成部署唯一 ID
-DEPLOY_ID="proj_$(date +%s | tail -c 6)"
-TARGET_DIR="$DEPLOY_DIR/html/$DEPLOY_ID"
-
-# 3. 拉取代码与资源
-if [ ! -d "$REPO_DIR" ]; then
-    echo -e "${BLUE}>>> 首次部署，克隆仓库...${NC}"
-    git clone $REPO_URL $REPO_DIR
-else
-    echo -e "${BLUE}>>> 正在更新代码...${NC}"
-    cd $REPO_DIR && git pull origin main
-fi
+# 2. 拉取代码
+[ ! -d "$REPO_DIR" ] && git clone $REPO_URL $REPO_DIR || (cd $REPO_DIR && git pull origin main)
 cd $REPO_DIR && git lfs pull
 cd $DEPLOY_DIR
 
-# 4. 数据库初始化脚本同步
-echo -e "${BLUE}>>> 自动配置数据库...${NC}"
+# 3. 数据库初始化 (自动建库)
+echo -e "${BLUE}>>> 准备 SQL 脚本...${NC}"
 rm -rf $DEPLOY_DIR/init/*.sql
 [ -d "$REPO_DIR/sql" ] && cp $REPO_DIR/sql/*.sql $DEPLOY_DIR/init/
 
 INIT_SQL_FILE="$DEPLOY_DIR/init/00_create_databases.sql"
-echo "-- Auto-generated" > $INIT_SQL_FILE
+echo "-- Auto-gen" > $INIT_SQL_FILE
 for f in $DEPLOY_DIR/init/*.sql; do
     fname=$(basename "$f")
     if [[ "$fname" != "00_create_databases.sql" ]]; then
@@ -63,14 +43,7 @@ for f in $DEPLOY_DIR/init/*.sql; do
     fi
 done
 
-# 5. 生成 SSL 证书
-if [ ! -f "conf/ssl/server.crt" ]; then
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout conf/ssl/server.key -out conf/ssl/server.crt \
-        -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
-fi
-
-# 6. 生成 Nginx 配置 (注意：\$ 用于转义，防止 Shell 误解析)
+# 4. 生成 Nginx 配置 (修正端口为 8099)
 cat <<EOF > conf/nginx.conf
 user  nginx;
 worker_processes  auto;
@@ -79,38 +52,24 @@ http {
     include       mime.types;
     default_type  application/octet-stream;
     sendfile      on;
-
     server {
         listen 80;
-        server_name _;
         return 301 https://\$host\$request_uri;
     }
-
     server {
         listen 443 ssl;
-        ssl_certificate      /etc/nginx/ssl/server.crt;
-        ssl_certificate_key  /etc/nginx/ssl/server.key;
-
-        root /usr/share/nginx/html/$DEPLOY_ID;
+        ssl_certificate /etc/nginx/ssl/server.crt;
+        ssl_certificate_key /etc/nginx/ssl/server.key;
+        root /usr/share/nginx/html;
         index index.html;
 
-        # 修复 405 错误：适配多种 API 前缀并转发
         location ~ ^/(api|prod-api)/ {
             rewrite ^/(api|prod-api)/(.*)\$ /\$2 break;
-            proxy_pass http://backend:8099;
+            proxy_pass http://backend:8099; # 关键：与后端端口对齐
             proxy_set_header Host \$host;
             proxy_set_header X-Real-IP \$remote_addr;
             proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-
-            # 允许后端处理耗时请求
-            proxy_read_timeout 120s;
         }
-
-        location /static/ {
-            root /usr/share/nginx/html/$DEPLOY_ID;
-        }
-
         location / {
             try_files \$uri \$uri/ /index.html;
         }
@@ -118,13 +77,12 @@ http {
 }
 EOF
 
-# 7. 生成 Docker Compose
+# 5. 生成 Docker Compose (关键修复：MySQL 连接与 8099 端口)
 cat <<EOF > docker-compose.yml
 version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    ports: ["3306:3306"]
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PWD}
     volumes:
@@ -138,7 +96,6 @@ services:
 
   redis:
     image: redis:7.0-alpine
-    ports: ["6379:6379"]
     restart: always
 
   backend:
@@ -148,10 +105,16 @@ services:
     volumes:
       - ./repo_source/springboot-app.jar:/app.jar
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-master?useSSL=false&serverTimezone=Asia/Shanghai
+      # 1. 确保使用 mysql 容器名 2. 增加连接参数防止链路失败
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-master?useSSL=false&serverTimezone=Asia/Shanghai&autoReconnect=true
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_PWD}
       - SPRING_REDIS_HOST=redis
-    command: ["/bin/sh", "-c", "sleep 20 && java -jar /app.jar"]
+    # 使用 sh -c 等待 MySQL 3306 真正开放再运行 Java
+    command: >
+      /bin/sh -c "
+      until nc -z mysql 3306; do echo 'Waiting for MySQL...'; sleep 3; done;
+      java -jar /app.jar --server.port=8099
+      "
     restart: always
 
   frontend:
@@ -164,25 +127,17 @@ services:
     restart: always
 EOF
 
-# 8. 处理前端静态资源
-echo -e "${BLUE}>>> 部署前端资源 ID: $DEPLOY_ID ...${NC}"
-mkdir -p $TARGET_DIR
+# 6. 生成证书并处理前端资源
+[ ! -f "conf/ssl/server.crt" ] && openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout conf/ssl/server.key -out conf/ssl/server.crt -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
+
+mkdir -p html/dist
 if [ -f "$REPO_DIR/dist.zip" ]; then
-    unzip -o $REPO_DIR/dist.zip -d $TARGET_DIR/
-    if [ -d "$TARGET_DIR/dist" ]; then
-        cp -r $TARGET_DIR/dist/* $TARGET_DIR/
-    fi
+    unzip -o $REPO_DIR/dist.zip -d html/
+    [ -d "html/dist" ] && mv html/dist/* html/ 2>/dev/null || true
 fi
+chmod -R 755 html && chown -R 101:101 html
 
-# 清理干扰文件并设置权限
-find $TARGET_DIR -name "*.gz" -delete
-chmod -R 755 $DEPLOY_DIR/html
-chown -R 101:101 $DEPLOY_DIR/html
-
-# 9. 启动服务
-echo -e "${BLUE}>>> 启动 Docker 容器...${NC}"
+# 7. 启动
 docker compose up -d --build
 
-echo -e "${GREEN}>>> 部署成功！${NC}"
-echo -e "${YELLOW}API 匹配规则: /api/* 和 /prod-api/* 均已指向后端${NC}"
-echo -e "${YELLOW}访问地址: https://43.165.185.39/ (或带 ID: /$DEPLOY_ID/)${NC}"
+echo -e "${GREEN}>>> 部署完毕！请等待 30 秒后端初始化...${NC}"
