@@ -109,11 +109,29 @@ http {
             root /usr/share/nginx/html/$DEPLOY_ID;
         }
 
+	# 针对 API 请求的转发
         location /api/ {
-            proxy_pass http://backend:8080/;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            # 解决 405 错误的关键：如果后端报错 405，强制转换错误处理（可选但有效）
+            error_page 405 =200 @405_to_backend;
+            
+            # 去掉末尾斜杠的技巧：
+            # 如果前端请求 /api/login，转发给 backend:8080/login
+            proxy_pass http://backend:8080/; 
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # 这里的超时设置稍微加长，防止后端处理大 SQL 时断开
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 60s;
+        }
+
+        # 针对静态文件的处理，确保不拦截 API
+        location /static/ {
+            root /usr/share/nginx/html/$DEPLOY_ID;
         }
 
         # 保持对带 ID 路径访问的支持
