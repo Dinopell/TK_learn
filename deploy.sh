@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =================================================================
-# TK_learn 终极全能部署脚本 (SQL 强制更新 & 内存优化版)
+# TK_learn 终极全能部署脚本 (生产稳定增强版)
 # =================================================================
 # 【配置区】
 REPO_URL="git@github.com:Dinopell/TK_learn.git"
@@ -16,10 +16,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
-# 1. 环境清理 (强制清理数据以确保 SQL 更新生效)
+# 1. 环境清理
 echo -e "${YELLOW}>>> 正在深度清理旧环境 (包括数据卷)...${NC}"
 docker compose -f $DEPLOY_DIR/docker-compose.yml down -v 2>/dev/null || true
-# 物理删除 MySQL 数据目录，强制触发重新初始化
 rm -rf $DEPLOY_DIR/mysql_data
 mkdir -p $DEPLOY_DIR/{html,conf/ssl,mysql_data,redis_data,init}
 chmod 755 /root $DEPLOY_DIR
@@ -45,7 +44,6 @@ for f in $DEPLOY_DIR/init/*.sql; do
     if [[ "$fname" != "00_create_databases.sql" ]]; then
         DB_NAME="${fname%.*}"
         echo "CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` DEFAULT CHARACTER SET utf8mb4;" >> $INIT_SQL_FILE
-        # 仅在文件开头没有 USE 时添加，防止重复
         if ! grep -q "USE \`$DB_NAME\`" "$f"; then
             sed -i "1i USE \`$DB_NAME\`;" "$f"
         fi
@@ -85,7 +83,7 @@ http {
 }
 EOF
 
-# 5. 生成 Docker Compose (移除过时的 version，优化健康检查)
+# 5. 生成 Docker Compose
 cat <<EOF > docker-compose.yml
 services:
   mysql:
@@ -96,7 +94,6 @@ services:
       - ./mysql_data:/var/lib/mysql
       - ./init:/docker-entrypoint-initdb.d
     healthcheck:
-      # 适当增加超时和重试，给大型 SQL 导入留出时间
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PWD}"]
       interval: 10s
       timeout: 10s
@@ -117,14 +114,17 @@ services:
     volumes:
       - ./repo_source/springboot-app.jar:/app.jar
     environment:
-      - DB_HOST=jdbc:mysql://mysql:3306/tk-master?useSSL=false&serverTimezone=Asia/Shanghai&autoReconnect=true
-      - DB_PASSWORD=${MYSQL_PWD}
-      - REDIS_HOST=redis
-    # 增加内存分配解决 OOM 问题
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-master?useSSL=false&serverTimezone=Asia/Shanghai&autoReconnect=true
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PWD}
+      - SPRING_REDIS_HOST=redis
+    # 修复：使用 exec 让 Java 成为 1 号进程，调优内存参数
     command: >
       /bin/sh -c "
       until nc -z mysql 3306; do echo 'Waiting for MySQL...'; sleep 3; done;
-      java -Xms1024m -Xmx2048m -jar /app.jar --server.port=8099
+      echo 'MySQL is ready. Starting Backend...';
+      exec java -Xms512m -Xmx1536m -jar /app.jar \
+        --spring.datasource.url='jdbc:mysql://mysql:3306/tk-master?useSSL=false' \
+        --server.port=8099
       "
     restart: always
 
@@ -152,4 +152,4 @@ chmod -R 755 html && chown -R 101:101 html
 echo -e "${YELLOW}>>> 正在启动容器 (SQL 较多时可能需要 1-2 分钟)...${NC}"
 docker compose up -d --build
 
-echo -e "${GREEN}>>> 部署指令已发出！${NC}"
+echo -e "${GREEN}>>> 部署成功！后端现在应该稳定运行在 8099 端口。${NC}"
