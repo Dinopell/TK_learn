@@ -72,7 +72,7 @@ http {
         index index.html;
 
         # 解决 alicdn 字体等外部资源加载失败的 CSP 策略
-        add_header Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' *; font-src 'self' data: https://at.alicdn.com;";
+        # add_header Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' *; font-src 'self' data: https://at.alicdn.com;";
 
         location /sub-app {
             alias /usr/share/nginx/html/sub-app/;
@@ -87,13 +87,10 @@ http {
 
         # 接口转发：去掉 rewrite 保证路径透传
         location /prod-api/ {
-            rewrite ^/prod-api/(.*)$ /$1 break;
-            proxy_pass http://backend:8099;
+            proxy_pass http://backend:8099/;
             proxy_set_header Host \$host;
             proxy_set_header X-Real-IP \$remote_addr;
             proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_connect_timeout 60s;
-            proxy_read_timeout 60s;
         }
 
         location / {
