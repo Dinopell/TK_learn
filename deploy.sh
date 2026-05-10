@@ -97,7 +97,7 @@ http {
         # 修复 405 错误：适配多种 API 前缀并转发
         location ~ ^/(api|prod-api)/ {
             rewrite ^/(api|prod-api)/(.*)\$ /\$2 break;
-            proxy_pass http://backend:8080;
+            proxy_pass http://backend:8099;
             proxy_set_header Host \$host;
             proxy_set_header X-Real-IP \$remote_addr;
             proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
