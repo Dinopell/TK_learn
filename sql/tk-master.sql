@@ -11,11 +11,8 @@
  Target Server Version : 80042 (8.0.42)
  File Encoding         : 65001
 
- Date: 01/04/2026 18:56:12
+ Date: 10/05/2026 17:02:42
 */
-
-CREATE DATABASE IF NOT EXISTS `tk_master` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `tk_master`;
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -593,7 +590,6 @@ CREATE TABLE `asset_domains` (
 -- Records of asset_domains
 -- ----------------------------
 BEGIN;
-INSERT INTO `asset_domains` (`id`, `asset_id`, `domain`, `full_url`, `is_online`, `last_check_time`, `http_code`, `response_ms`, `error_log`, `ssl_status`, `ssl_expiry`, `create_time`) VALUES (87, 49, 'localhost', 'localhost/sdahoai', 0, NULL, 0, 0, NULL, 0, NULL, '2026-03-30 12:19:11');
 COMMIT;
 
 -- ----------------------------
@@ -602,8 +598,8 @@ COMMIT;
 DROP TABLE IF EXISTS `business_latest_summary`;
 CREATE TABLE `business_latest_summary` (
   `summary_id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '汇总数据唯一标识',
-  `session_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '关联会话ID',
-  `user_agent` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户代理(UA)',
+  `session_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '关联会话ID',
+  `user_agent` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户代理(UA)',
   `device_info` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '设备详情（JSON格式，存储客户端设备、浏览器信息）',
   `summary_content` json NOT NULL COMMENT '最新业务汇总数据（完整存储businessPreview所有字段：卡号、有效期、BIN信息等）',
   `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '汇总更新时间',
@@ -616,21 +612,6 @@ CREATE TABLE `business_latest_summary` (
 -- Records of business_latest_summary
 -- ----------------------------
 BEGIN;
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (1, 'SN-czy0ahbg3', NULL, NULL, "{\"cvv\": \"123\", \"phone\": \"2131232131231321\", \"password\": \"hhhhhhhhhh\", \"username\": \"dahdohaisihd\", \"card_number\": \"9999 9999 9999 9923\", \"expiry_date\": \"2312\"}", '2025-12-25 20:04:40.734');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (10, 'SN-rpo3cwmer', NULL, NULL, "{\"cvv\": \"213\", \"phone\": \"12\", \"password\": \"3123\", \"username\": \"2311\", \"card_number\": \"213\", \"expiry_date\": \"231\"}", '2025-12-25 21:28:06.364');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (27, 'SN-xydx7yyte', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15', NULL, "{\"cvv\": \"324\", \"phone\": \"3243242\", \"password\": \"12312313\", \"username\": \"213213\", \"card_number\": \"2132 1312\", \"expiry_date\": \"3242\"}", '2025-12-25 21:42:00.844');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (30, 'SN-3n7w99187', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', NULL, "{\"cvv\": \"312\", \"password\": \"213241324\", \"username\": \"21312322331\", \"card_number\": \"2132 131\", \"expiry_date\": \"21321\"}", '2025-12-27 13:52:37.580');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (38, 'SN-2wp1jn7l4', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', NULL, "{\"password\": \"123\", \"username\": \"12232243\"}", '2025-12-30 23:10:20.831');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (45, 'SN-x4n5engj4', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', NULL, "{\"bin\": \"448590\", \"cvv\": \"234\", \"phone\": \"1234567890\", \"password\": \"zhang123456\", \"card_holder\": \"Dino Pell\", \"card_number\": \"4485 9021 3871 2903\", \"expiry_date\": \"23/23\"}", '2026-01-02 02:27:21.050');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (66, 'SN-1xnfo1bs6', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', "{\"bin\": \"448590\", \"cvv\": \"213\", \"phone\": \"1234567890\", \"binData\": \"{\\\"BIN\\\":{\\\"brand\\\":\\\"VISA\\\",\\\"country\\\":{\\\"alpha2\\\":\\\"US\\\",\\\"alpha3\\\":\\\"USA\\\",\\\"capital\\\":\\\"Washington, D.C.\\\",\\\"idd\\\":\\\"1\\\",\\\"language\\\":\\\"English\\\",\\\"language_code\\\":\\\"EN\\\",\\\"numeric\\\":\\\"840\\\"},\\\"currency\\\":\\\"USD\\\",\\\"issuer\\\":{\\\"name\\\":\\\"JPMORGAN CHASE BANK N.A. - COMMERCIAL\\\",\\\"phone\\\":\\\"\\\",\\\"website\\\":\\\"\\\"},\\\"length\\\":6,\\\"level\\\":\\\"PURCHASING\\\",\\\"number\\\":448590,\\\"scheme\\\":\\\"VISA\\\",\\\"type\\\":\\\"CREDIT\\\",\\\"valid\\\":true},\\\"code\\\":200,\\\"success\\\":true}\", \"password\": \"398099\", \"card_type\": \"CREDIT\", \"card_brand\": \"VISA\", \"card_level\": \"PURCHASING\", \"card_holder\": \"Dino Pell\", \"card_issuer\": \"{\\\"name\\\":\\\"JPMORGAN CHASE BANK N.A. - COMMERCIAL\\\",\\\"phone\\\":\\\"\\\",\\\"website\\\":\\\"\\\"}\", \"card_number\": \"4485 9021 3871 2903\", \"expiry_date\": \"12/12\"}", '2026-01-02 22:32:12.538');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (71, 'SN-xq6odwti7', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', "{\"bin\": \"448590\", \"cvv\": \"123\", \"phone\": \"12312313212\", \"binData\": \"{\\\"BIN\\\":{\\\"brand\\\":\\\"VISA\\\",\\\"country\\\":{\\\"alpha2\\\":\\\"US\\\",\\\"alpha3\\\":\\\"USA\\\",\\\"capital\\\":\\\"Washington, D.C.\\\",\\\"idd\\\":\\\"1\\\",\\\"language\\\":\\\"English\\\",\\\"language_code\\\":\\\"EN\\\",\\\"numeric\\\":\\\"840\\\"},\\\"currency\\\":\\\"USD\\\",\\\"issuer\\\":{\\\"name\\\":\\\"JPMORGAN CHASE BANK N.A. - COMMERCIAL\\\",\\\"phone\\\":\\\"\\\",\\\"website\\\":\\\"\\\"},\\\"length\\\":6,\\\"level\\\":\\\"PURCHASING\\\",\\\"number\\\":448590,\\\"scheme\\\":\\\"VISA\\\",\\\"type\\\":\\\"CREDIT\\\",\\\"valid\\\":true},\\\"code\\\":200,\\\"success\\\":true}\", \"password\": \"123456\", \"card_type\": \"CREDIT\", \"card_brand\": \"VISA\", \"card_level\": \"PURCHASING\", \"card_holder\": \"Dino Pell\", \"card_issuer\": \"{\\\"name\\\":\\\"JPMORGAN CHASE BANK N.A. - COMMERCIAL\\\",\\\"phone\\\":\\\"\\\",\\\"website\\\":\\\"\\\"}\", \"card_number\": \"4485 9012 3456 7890\", \"expiry_date\": \"23/23\", \"highlightTip\": \"重点卡头\", \"isHighlightCard\": true}", '2026-01-04 09:58:14.806');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (74, 'SN-x7m5qmubx', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', "{\"cvv\": \"123\", \"phone\": \"123131\", \"password\": \"123\", \"card_holder\": \"Dino\", \"card_number\": \"4485 90\", \"expiry_date\": \"12/12\", \"highlightTip\": \"重点卡头\", \"isHighlightCard\": true}", '2026-01-04 18:54:45.430');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (81, 'SN-f3e9yhhpd', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', "{\"cvv\": \"123\", \"phone\": \"12312312321313\", \"password\": \"123456\", \"card_holder\": \"Dino\", \"card_number\": \"1231 2313 1231 2313\", \"expiry_date\": \"12/32\", \"isHighlightCard\": false}", '2026-01-12 19:27:11.462');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (84, 'SN-nmvf28wjt', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', "{\"card_holder\": \"12312313\"}", '2026-01-12 19:37:47.721');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (85, 'SN-pqs3e0f32', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', "{\"password\": \"12321\", \"card_holder\": \"Dino Pell\"}", '2026-01-15 15:02:43.480');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (90, 'ADMIN_CONSOLE', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', "{\"cvv\": \"213\", \"phone\": \"21312313123213\", \"password\": \"123123\", \"card_holder\": \"Dino Pell\", \"card_number\": \"1232312312321313\", \"expiry_date\": \"43213\", \"isHighlightCard\": false}", '2026-01-15 22:36:03.029');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (121, 'SN-gav7raryz', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36', '{\"标签\":\"android\",\"是否为PC\":false,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":492,\"高度\":667,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"small\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":true,\"是否为安卓\":true}', '{}', '2026-01-21 00:36:16.469');
-INSERT INTO `business_latest_summary` (`summary_id`, `session_id`, `user_agent`, `device_info`, `summary_content`, `update_time`) VALUES (129, 'SN-km1qkoeyk', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '{\"标签\":\"ios\",\"是否为PC\":false,\"平台\":\"MacIntel\",\"类型\":\"safari\",\"是否为iOS\":true,\"宽度\":430,\"高度\":932,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"small\",\"版本\":\"604.1\",\"是否为移动设备\":true,\"是否为安卓\":false}', "{\"amexCvv\": \"1231\", \"smsCode\": \"232323\"}", '2026-03-18 19:46:20.120');
 COMMIT;
 
 -- ----------------------------
@@ -675,13 +656,12 @@ CREATE TABLE `deploy_logs` (
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_asset_time` (`asset_id`,`start_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='部署日志表';
+) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='部署日志表';
 
 -- ----------------------------
 -- Records of deploy_logs
 -- ----------------------------
 BEGIN;
-INSERT INTO `deploy_logs` (`id`, `asset_id`, `start_time`, `end_time`, `deploy_path`, `status`, `message`, `create_time`) VALUES (39, 49, '2026-03-30 20:19:02', '2026-03-30 20:19:03', '/opt/homebrew/var/www/plo', 'success', '部署成功，访问地址：http://localhost/plo', '2026-03-30 12:19:02');
 COMMIT;
 
 -- ----------------------------
@@ -690,26 +670,26 @@ COMMIT;
 DROP TABLE IF EXISTS `gen_table`;
 CREATE TABLE `gen_table` (
   `table_id` bigint NOT NULL AUTO_INCREMENT COMMENT '编号',
-  `table_name` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '表名称',
-  `table_comment` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '表描述',
-  `sub_table_name` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联子表的表名',
-  `sub_table_fk_name` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '子表关联的外键名',
-  `class_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '实体类名称',
-  `tpl_category` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT 'crud' COMMENT '使用的模板（crud单表操作 tree树表操作）',
-  `tpl_web_type` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '前端模板类型（element-ui模版 element-plus模版）',
-  `package_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成包路径',
-  `module_name` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成模块名',
-  `business_name` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成业务名',
-  `function_name` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成功能名',
-  `function_author` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成功能作者',
-  `gen_type` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '生成代码方式（0zip压缩包 1自定义路径）',
-  `gen_path` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '/' COMMENT '生成路径（不填默认项目路径）',
-  `options` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '其它生成选项',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `table_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '表名称',
+  `table_comment` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '表描述',
+  `sub_table_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联子表的表名',
+  `sub_table_fk_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '子表关联的外键名',
+  `class_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '实体类名称',
+  `tpl_category` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'crud' COMMENT '使用的模板（crud单表操作 tree树表操作）',
+  `tpl_web_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '前端模板类型（element-ui模版 element-plus模版）',
+  `package_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成包路径',
+  `module_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成模块名',
+  `business_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成业务名',
+  `function_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成功能名',
+  `function_author` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成功能作者',
+  `gen_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '生成代码方式（0zip压缩包 1自定义路径）',
+  `gen_path` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '/' COMMENT '生成路径（不填默认项目路径）',
+  `options` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '其它生成选项',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`table_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='代码生成业务表';
 
@@ -726,25 +706,25 @@ DROP TABLE IF EXISTS `gen_table_column`;
 CREATE TABLE `gen_table_column` (
   `column_id` bigint NOT NULL AUTO_INCREMENT COMMENT '编号',
   `table_id` bigint DEFAULT NULL COMMENT '归属表编号',
-  `column_name` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '列名称',
-  `column_comment` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '列描述',
-  `column_type` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '列类型',
-  `java_type` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'JAVA类型',
-  `java_field` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'JAVA字段名',
-  `is_pk` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否主键（1是）',
-  `is_increment` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否自增（1是）',
-  `is_required` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否必填（1是）',
-  `is_insert` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否为插入字段（1是）',
-  `is_edit` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否编辑字段（1是）',
-  `is_list` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否列表字段（1是）',
-  `is_query` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否查询字段（1是）',
-  `query_type` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT 'EQ' COMMENT '查询方式（等于、不等于、大于、小于、范围）',
-  `html_type` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '显示类型（文本框、文本域、下拉框、复选框、单选框、日期控件）',
-  `dict_type` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典类型',
+  `column_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '列名称',
+  `column_comment` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '列描述',
+  `column_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '列类型',
+  `java_type` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'JAVA类型',
+  `java_field` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'JAVA字段名',
+  `is_pk` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否主键（1是）',
+  `is_increment` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否自增（1是）',
+  `is_required` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否必填（1是）',
+  `is_insert` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否为插入字段（1是）',
+  `is_edit` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否编辑字段（1是）',
+  `is_list` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否列表字段（1是）',
+  `is_query` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '是否查询字段（1是）',
+  `query_type` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'EQ' COMMENT '查询方式（等于、不等于、大于、小于、范围）',
+  `html_type` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '显示类型（文本框、文本域、下拉框、复选框、单选框、日期控件）',
+  `dict_type` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典类型',
   `sort` int DEFAULT NULL COMMENT '排序',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`column_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='代码生成业务表字段';
@@ -761,9 +741,9 @@ COMMIT;
 DROP TABLE IF EXISTS `page_access_link`;
 CREATE TABLE `page_access_link` (
   `link_id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '页面链路唯一标识',
-  `session_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '关联会话ID',
-  `page_name` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '页面名称',
-  `page_type` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '页面类型（complete/active）',
+  `session_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '关联会话ID',
+  `page_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '页面名称',
+  `page_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '页面类型（complete/active）',
   `entry_time` datetime(3) NOT NULL COMMENT '页面进入时间（毫秒级）',
   `leave_time` datetime(3) DEFAULT NULL COMMENT '页面离开时间（毫秒级）',
   `access_sort` int unsigned NOT NULL DEFAULT '0' COMMENT '页面访问顺序（从小到大=访问从早到晚）',
@@ -779,48 +759,6 @@ CREATE TABLE `page_access_link` (
 -- Records of page_access_link
 -- ----------------------------
 BEGIN;
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (3, 'SN-czy0ahbg3', '登录页_账号', 'active', '2025-12-25 19:54:57.695', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (4, 'SN-czy0ahbg3', '填卡页_详情', 'complete', '2025-12-25 19:55:13.321', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (5, 'SN-czy0ahbg3', '登录页_密码', 'complete', '2025-12-25 19:56:11.722', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (6, 'SN-rpo3cwmer', '登录页_账号', 'complete', '2025-12-25 20:09:41.281', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (7, 'SN-rpo3cwmer', '登录页_密码', 'active', '2025-12-25 20:11:03.476', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (8, 'SN-rpo3cwmer', '填卡页_详情', 'complete', '2025-12-25 21:20:02.354', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (9, 'SN-xydx7yyte', '登录页_账号', 'complete', '2025-12-25 21:40:17.522', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (10, 'SN-xydx7yyte', '登录页_密码', 'complete', '2025-12-25 21:40:43.287', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (11, 'SN-xydx7yyte', '填卡页_详情', 'complete', '2025-12-25 21:40:45.957', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (12, 'SN-3n7w99187', '登录页_账号', 'complete', '2025-12-27 00:32:49.611', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (13, 'SN-3n7w99187', '登录页_密码', 'complete', '2025-12-27 13:50:51.877', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (14, 'SN-3n7w99187', '填卡页_详情', 'active', '2025-12-27 13:52:29.025', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (17, 'SN-2wp1jn7l4', '登录页_账号', 'complete', '2025-12-30 17:24:03.634', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (18, 'SN-2wp1jn7l4', '登录页_密码', 'complete', '2025-12-30 17:26:56.288', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (19, 'SN-x4n5engj4', '登录页_账号', 'complete', '2026-01-01 19:52:28.041', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (20, 'SN-x4n5engj4', '登录页_密码', 'complete', '2026-01-01 20:07:31.841', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (21, 'SN-x4n5engj4', '支付页_详情', 'complete', '2026-01-01 20:07:34.838', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (22, 'SN-1xnfo1bs6', '登录页_账号', 'complete', '2026-01-02 03:15:10.401', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (23, 'SN-1xnfo1bs6', '登录页_密码', 'complete', '2026-01-02 03:21:33.163', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (24, 'SN-1xnfo1bs6', '支付页_详情', 'complete', '2026-01-02 03:21:43.981', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (25, 'SN-xq6odwti7', '登录页_账号', 'complete', '2026-01-04 09:57:31.546', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (26, 'SN-xq6odwti7', '登录页_密码', 'complete', '2026-01-04 09:57:39.656', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (27, 'SN-xq6odwti7', '支付页_详情', 'complete', '2026-01-04 09:58:02.814', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (28, 'SN-x7m5qmubx', '登录页_账号', 'complete', '2026-01-04 18:50:59.882', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (29, 'SN-x7m5qmubx', '登录页_密码', 'complete', '2026-01-04 18:51:19.427', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (30, 'SN-x7m5qmubx', '支付页_详情', 'complete', '2026-01-04 18:51:45.507', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (31, 'SN-f3e9yhhpd', '登录页_账号', 'complete', '2026-01-12 19:26:49.447', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (32, 'SN-f3e9yhhpd', '登录页_密码', 'complete', '2026-01-12 19:27:01.511', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (33, 'SN-f3e9yhhpd', '支付页_详情', 'complete', '2026-01-12 19:27:04.619', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (34, 'SN-nmvf28wjt', '登录页_账号', 'complete', '2026-01-12 19:37:40.871', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (35, 'SN-pqs3e0f32', '登录页_账号', 'complete', '2026-01-15 14:43:18.132', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (36, 'SN-pqs3e0f32', '登录页_密码', 'complete', '2026-01-15 14:43:29.967', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (37, 'SN-pqs3e0f32', '支付页_详情', 'complete', '2026-01-15 14:43:34.489', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (38, 'ADMIN_CONSOLE', '登录页_账号', 'complete', '2026-01-15 22:04:29.590', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (39, 'ADMIN_CONSOLE', '支付页_详情', 'complete', '2026-01-15 22:04:42.415', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (40, 'ADMIN_CONSOLE', '登录页_密码', 'complete', '2026-01-15 22:05:28.029', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (41, 'SN-gav7raryz', 'to_login', 'complete', '2026-01-21 00:28:54.391', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (42, 'SN-gav7raryz', '登录页', 'complete', '2026-01-21 00:32:53.772', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (43, 'SN-km1qkoeyk', '登录页', 'active', '2026-03-18 19:45:12.360', NULL, 1, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (44, 'SN-km1qkoeyk', '验证码验证', 'active', '2026-03-18 19:45:45.990', NULL, 2, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (45, 'SN-km1qkoeyk', '运通CVV验证', 'complete', '2026-03-18 19:45:58.658', NULL, 3, '{}');
-INSERT INTO `page_access_link` (`link_id`, `session_id`, `page_name`, `page_type`, `entry_time`, `leave_time`, `access_sort`, `page_ext_info`) VALUES (46, 'SN-km1qkoeyk', 'PING验证', 'active', '2026-03-18 19:46:09.307', NULL, 4, '{}');
 COMMIT;
 
 -- ----------------------------
@@ -830,7 +768,7 @@ DROP TABLE IF EXISTS `page_history_data`;
 CREATE TABLE `page_history_data` (
   `history_id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '历史数据唯一标识',
   `link_id` bigint unsigned NOT NULL COMMENT '关联页面链路ID',
-  `data_unique_key` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '数据唯一标识（基于_updateTime，避免重复）',
+  `data_unique_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '数据唯一标识（基于_updateTime，避免重复）',
   `data_content` json NOT NULL COMMENT '页面动态填写数据（完整存储dataList所有字段）',
   `data_sort` int unsigned NOT NULL DEFAULT '0' COMMENT '页面内数据填写顺序（从小到大=填写从早到晚）',
   `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '数据记录时间',
@@ -845,121 +783,6 @@ CREATE TABLE `page_history_data` (
 -- Records of page_history_data
 -- ----------------------------
 BEGIN;
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (1, 3, '2025-12-25T11:55:03.597Z', "{\"username\": \"01010101010\", \"_updateTime\": \"2025-12-25T11:55:03.597Z\"}", 1, '2025-12-25 19:55:08.339');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (2, 4, '2025-12-25T11:55:17.396Z', "{\"cvv\": \"010\", \"phone\": \"01010101010\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2025-12-25T11:55:21.205Z\", \"_updateTime\": \"2025-12-25T11:55:17.396Z\", \"card_number\": \"0101 0101 0101 0101\", \"expiry_date\": \"01/01\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2025-12-25 19:55:21.243');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (3, 3, '2025-12-25T11:56:05.710Z', "{\"username\": \"00000000000\", \"_updateTime\": \"2025-12-25T11:56:05.710Z\"}", 2, '2025-12-25 19:56:16.276');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (4, 5, '2025-12-25T11:56:11.722Z', "{\"password\": \"99999999\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T11:56:16.251Z\", \"_updateTime\": \"2025-12-25T11:56:11.722Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2025-12-25 19:56:16.279');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (5, 4, '2025-12-25T11:56:27.110Z', "{\"cvv\": \"123\", \"phone\": \"2131232131231321\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2025-12-25T11:56:28.378Z\", \"_updateTime\": \"2025-12-25T11:56:27.110Z\", \"card_number\": \"9999 9999 9999 9923\", \"expiry_date\": \"2312\", \"_snapshotStatus\": \"最终提交完成\"}", 2, '2025-12-25 19:56:28.414');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (6, 3, '2025-12-25T11:59:09.027Z', "{\"username\": \"你好呀哈哈哈哈哈哈哈\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T11:59:09.804Z\", \"_updateTime\": \"2025-12-25T11:59:09.027Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2025-12-25 19:59:09.836');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (7, 5, '2025-12-25T11:59:13.985Z', "{\"password\": \"hhhhhhhhhh\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T11:59:16.811Z\", \"_updateTime\": \"2025-12-25T11:59:13.985Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2025-12-25 19:59:16.841');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (8, 3, '2025-12-25T11:59:49.410Z', "{\"username\": \"ndiiahsdhdashd\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T11:59:57.752Z\", \"_updateTime\": \"2025-12-25T11:59:49.410Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 4, '2025-12-25 19:59:57.776');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (9, 3, '2025-12-25T12:00:08.643Z', "{\"username\": \"你好呀电话i啊hi撒hi懂\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T12:03:24.583Z\", \"_updateTime\": \"2025-12-25T12:00:08.643Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 5, '2025-12-25 20:03:24.644');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (10, 6, '2025-12-25T12:10:54.734Z', "{\"username\": \"ewwehqupudhsa\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T12:10:59.768Z\", \"_updateTime\": \"2025-12-25T12:10:54.734Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2025-12-25 20:10:59.821');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (11, 6, '2025-12-25T12:17:00.484Z', "{\"username\": \"那点送份厚爱饭还得送花\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T12:17:00.584Z\", \"_updateTime\": \"2025-12-25T12:17:00.484Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2025-12-25 20:17:00.630');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (12, 7, '2025-12-25T12:11:03.476Z', "{\"password\": \"dshadadidawod\", \"_updateTime\": \"2025-12-25T12:11:03.476Z\"}", 1, '2025-12-25 20:17:00.638');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (13, 7, '2025-12-25T12:17:06.543Z', "{\"password\": \"hihwih;da\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T12:17:06.644Z\", \"_updateTime\": \"2025-12-25T12:17:06.543Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2025-12-25 20:17:06.673');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (14, 6, '2025-12-25T12:17:22.525Z', "{\"username\": \"dashdia;soadhoas\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T12:17:22.627Z\", \"_updateTime\": \"2025-12-25T12:17:22.525Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2025-12-25 20:17:22.654');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (15, 7, '2025-12-25T12:17:25.618Z', "{\"password\": \"dahi;diawhdawod\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T12:17:25.719Z\", \"_updateTime\": \"2025-12-25T12:17:25.618Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2025-12-25 20:17:25.743');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (16, 6, '2025-12-25T13:19:58.674Z', "{\"username\": \"23123\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T13:19:58.774Z\", \"_updateTime\": \"2025-12-25T13:19:58.674Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 4, '2025-12-25 21:19:58.817');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (17, 7, '2025-12-25T13:20:00.456Z', "{\"password\": \"213312\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T13:20:00.558Z\", \"_updateTime\": \"2025-12-25T13:20:00.456Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 4, '2025-12-25 21:20:00.570');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (18, 8, '2025-12-25T13:20:04.856Z', "{\"cvv\": \"213\", \"phone\": \"2132311\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2025-12-25T13:20:04.958Z\", \"_updateTime\": \"2025-12-25T13:20:04.856Z\", \"card_number\": \"2313 2\", \"expiry_date\": \"21312\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2025-12-25 21:20:04.984');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (19, 6, '2025-12-25T13:22:02.562Z', "{\"username\": \"231\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T13:22:02.664Z\", \"_updateTime\": \"2025-12-25T13:22:02.562Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 5, '2025-12-25 21:22:02.703');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (20, 7, '2025-12-25T13:22:04.147Z', "{\"password\": \"23123\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T13:22:04.248Z\", \"_updateTime\": \"2025-12-25T13:22:04.147Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 5, '2025-12-25 21:22:04.266');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (21, 8, '2025-12-25T13:22:08.281Z', "{\"cvv\": \"213\", \"phone\": \"12\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2025-12-25T13:22:08.383Z\", \"_updateTime\": \"2025-12-25T13:22:08.281Z\", \"card_number\": \"213\", \"expiry_date\": \"231\", \"_snapshotStatus\": \"最终提交完成\"}", 2, '2025-12-25 21:22:08.408');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (22, 6, '2025-12-25T13:28:04.690Z', "{\"username\": \"2311\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T13:28:04.791Z\", \"_updateTime\": \"2025-12-25T13:28:04.690Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 6, '2025-12-25 21:28:04.856');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (23, 7, '2025-12-25T13:28:06.222Z', "{\"password\": \"3123\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T13:28:06.324Z\", \"_updateTime\": \"2025-12-25T13:28:06.222Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 6, '2025-12-25 21:28:06.353');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (24, 9, '2025-12-25T13:40:30.365Z', "{\"username\": \"213213\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T13:40:30.467Z\", \"_updateTime\": \"2025-12-25T13:40:30.365Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2025-12-25 21:40:30.519');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (25, 10, '2025-12-25T13:40:43.348Z', "{\"password\": \"12312313\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-25T13:40:43.468Z\", \"_updateTime\": \"2025-12-25T13:40:43.348Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2025-12-25 21:40:43.503');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (26, 11, '2025-12-25T13:42:00.673Z', "{\"cvv\": \"324\", \"phone\": \"3243242\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2025-12-25T13:42:00.779Z\", \"_updateTime\": \"2025-12-25T13:42:00.673Z\", \"card_number\": \"2132 1312\", \"expiry_date\": \"3242\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2025-12-25 21:42:00.843');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (27, 12, '2025-12-26T16:33:04.188Z', "{\"username\": \"wogaizmbancaihao\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-26T16:33:04.288Z\", \"_updateTime\": \"2025-12-26T16:33:04.188Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2025-12-27 00:33:04.359');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (28, 12, '2025-12-27T05:50:47.794Z', "{\"username\": \"你好呀\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-27T05:50:47.897Z\", \"_updateTime\": \"2025-12-27T05:50:47.794Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2025-12-27 13:50:47.973');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (29, 13, '2025-12-27T05:50:51.907Z', "{\"password\": \"hhhhhhh\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-27T05:50:52.012Z\", \"_updateTime\": \"2025-12-27T05:50:51.907Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2025-12-27 13:50:52.053');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (30, 12, '2025-12-27T05:52:35.267Z', "{\"username\": \"21312322331\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-27T05:52:35.365Z\", \"_updateTime\": \"2025-12-27T05:52:35.267Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2025-12-27 13:52:35.396');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (31, 14, '2025-12-27T05:52:30.489Z', "{\"cvv\": \"312\", \"_updateTime\": \"2025-12-27T05:52:30.489Z\", \"card_number\": \"2132 131\", \"expiry_date\": \"21321\"}", 1, '2025-12-27 13:52:35.410');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (32, 13, '2025-12-27T05:52:37.452Z', "{\"password\": \"213241324\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-27T05:52:37.549Z\", \"_updateTime\": \"2025-12-27T05:52:37.452Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2025-12-27 13:52:37.573');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (36, 17, '2025-12-30T09:25:07.930Z', "{\"username\": \"afihidapohfiewkfjk\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-30T09:25:08.030Z\", \"_updateTime\": \"2025-12-30T09:25:07.930Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2025-12-30 17:25:08.079');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (37, 18, '2025-12-30T09:26:56.315Z', "{\"password\": \"398099\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-30T09:26:56.413Z\", \"_updateTime\": \"2025-12-30T09:26:56.315Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2025-12-30 17:26:56.452');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (38, 17, '2025-12-30T14:39:20.393Z', "{\"username\": \"2131242343142\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-30T14:39:20.507Z\", \"_updateTime\": \"2025-12-30T14:39:20.393Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2025-12-30 22:39:20.584');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (39, 17, '2025-12-30T14:41:05.534Z', "{\"username\": \"dahsldjashd\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-30T14:41:05.637Z\", \"_updateTime\": \"2025-12-30T14:41:05.534Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2025-12-30 22:41:05.675');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (40, 17, '2025-12-30T14:45:41.184Z', "{\"username\": \"242134\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-30T14:45:41.302Z\", \"_updateTime\": \"2025-12-30T14:45:41.184Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 4, '2025-12-30 22:45:41.384');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (41, 17, '2025-12-30T15:10:20.642Z', "{\"username\": \"12232243\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2025-12-30T15:10:20.755Z\", \"_updateTime\": \"2025-12-30T15:10:20.642Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 5, '2025-12-30 23:10:20.826');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (42, 19, '2026-01-01T12:07:30.216Z', "{\"username\": \"123123\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:07:30.287Z\", \"_updateTime\": \"2026-01-01T12:07:30.216Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-01 20:07:30.328');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (43, 20, '2026-01-01T12:07:31.877Z', "{\"password\": \"23123123\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:07:32Z\", \"_updateTime\": \"2026-01-01T12:07:31.877Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-01 20:07:32.029');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (44, 21, '2026-01-01T12:07:38.230Z', "{\"cvv\": \"342\", \"phone\": \"3412341234141\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-01T12:07:38.307Z\", \"_updateTime\": \"2026-01-01T12:07:38.230Z\", \"card_number\": \"4323 4141 3234 3243\", \"expiry_date\": \"32412\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2026-01-01 20:07:38.324');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (45, 19, '2026-01-01T12:33:09.531Z', "{\"username\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:33:09.639Z\", \"_updateTime\": \"2026-01-01T12:33:09.531Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-01 20:33:09.696');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (46, 20, '2026-01-01T12:33:11.104Z', "{\"password\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:33:11.201Z\", \"_updateTime\": \"2026-01-01T12:33:11.104Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-01 20:33:11.214');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (47, 21, '2026-01-01T12:33:18.174Z', "{\"cvv\": \"448\", \"phone\": \"448590\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-01T12:33:18.261Z\", \"_updateTime\": \"2026-01-01T12:33:18.174Z\", \"card_number\": \"4485 90\", \"expiry_date\": \"44859\", \"_snapshotStatus\": \"最终提交完成\"}", 2, '2026-01-01 20:33:18.289');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (48, 19, '2026-01-01T12:36:33.091Z', "{\"username\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:36:33.194Z\", \"_updateTime\": \"2026-01-01T12:36:33.091Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2026-01-01 20:36:33.215');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (49, 20, '2026-01-01T12:36:34.416Z', "{\"password\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:36:34.519Z\", \"_updateTime\": \"2026-01-01T12:36:34.416Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2026-01-01 20:36:34.544');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (50, 21, '2026-01-01T12:36:38.464Z', "{\"cvv\": \"448\", \"phone\": \"448590\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-01T12:36:38.550Z\", \"_updateTime\": \"2026-01-01T12:36:38.464Z\", \"card_number\": \"4485 90\", \"expiry_date\": \"44859\", \"_snapshotStatus\": \"最终提交完成\"}", 3, '2026-01-01 20:36:38.573');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (51, 19, '2026-01-01T12:38:15.257Z', "{\"username\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:38:15.365Z\", \"_updateTime\": \"2026-01-01T12:38:15.257Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 4, '2026-01-01 20:38:15.384');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (52, 20, '2026-01-01T12:38:16.615Z', "{\"password\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:38:16.719Z\", \"_updateTime\": \"2026-01-01T12:38:16.615Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 4, '2026-01-01 20:38:16.731');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (53, 19, '2026-01-01T12:39:15.816Z', "{\"username\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:39:23.201Z\", \"_updateTime\": \"2026-01-01T12:39:15.816Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 5, '2026-01-01 20:39:25.263');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (54, 21, '2026-01-01T12:38:45.305Z', "{\"_updateTime\": \"2026-01-01T12:38:45.305Z\", \"card_number\": \"4485 90\", \"expiry_date\": \"44859\"}", 4, '2026-01-01 20:39:25.267');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (55, 20, '2026-01-01T12:39:33.995Z', "{\"password\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:39:34.072Z\", \"_updateTime\": \"2026-01-01T12:39:33.995Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 5, '2026-01-01 20:39:34.093');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (56, 19, '2026-01-01T12:41:23.393Z', "{\"username\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:41:23.491Z\", \"_updateTime\": \"2026-01-01T12:41:23.393Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 6, '2026-01-01 20:41:23.511');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (57, 20, '2026-01-01T12:41:24.926Z', "{\"password\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:41:25.023Z\", \"_updateTime\": \"2026-01-01T12:41:24.926Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 6, '2026-01-01 20:41:25.045');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (58, 19, '2026-01-01T12:43:08.067Z', "{\"username\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:43:08.168Z\", \"_updateTime\": \"2026-01-01T12:43:08.067Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 7, '2026-01-01 20:43:08.187');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (59, 20, '2026-01-01T12:43:09.839Z', "{\"password\": \"448590\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T12:43:09.933Z\", \"_updateTime\": \"2026-01-01T12:43:09.839Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 7, '2026-01-01 20:43:09.945');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (60, 21, '2026-01-01T12:47:41.432Z', "{\"cvv\": \"134\", \"phone\": \"134431244\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-01T12:47:41.496Z\", \"_updateTime\": \"2026-01-01T12:47:41.432Z\", \"card_number\": \"4485 9021 3871 2903\", \"expiry_date\": \"34113\", \"_snapshotStatus\": \"最终提交完成\"}", 5, '2026-01-01 20:47:41.512');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (61, 19, '2026-01-01T18:26:51.322Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T18:26:51.425Z\", \"_updateTime\": \"2026-01-01T18:26:51.322Z\", \"card_holder\": \"Dino Pell\", \"_snapshotStatus\": \"完成步骤跳转\"}", 8, '2026-01-02 02:26:51.456');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (62, 20, '2026-01-01T18:26:56.970Z', "{\"password\": \"zhang123456\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T18:26:57.087Z\", \"_updateTime\": \"2026-01-01T18:26:56.970Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 8, '2026-01-02 02:26:57.107');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (63, 21, '2026-01-01T18:27:20.948Z', "{\"cvv\": \"234\", \"phone\": \"1234567890\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-01T18:27:21.034Z\", \"_updateTime\": \"2026-01-01T18:27:20.948Z\", \"card_number\": \"4485 9021 3871 2903\", \"expiry_date\": \"23/23\", \"_snapshotStatus\": \"最终提交完成\"}", 6, '2026-01-02 02:27:21.048');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (64, 22, '2026-01-01T19:21:30.047Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T19:21:30.152Z\", \"_updateTime\": \"2026-01-01T19:21:30.047Z\", \"card_holder\": \"Dino Pell\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-02 03:21:30.220');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (65, 23, '2026-01-01T19:21:33.209Z', "{\"password\": \"398099\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-01T19:21:33.310Z\", \"_updateTime\": \"2026-01-01T19:21:33.209Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-02 03:21:33.326');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (66, 24, '2026-01-01T19:21:51.865Z', "{\"cvv\": \"213\", \"phone\": \"1234567890\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-01T19:21:51.970Z\", \"_updateTime\": \"2026-01-01T19:21:51.865Z\", \"card_number\": \"4485 9021 3871 2903\", \"expiry_date\": \"12/12\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2026-01-02 03:21:51.986');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (67, 22, '2026-01-02T14:32:09.771Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-02T14:32:09.874Z\", \"_updateTime\": \"2026-01-02T14:32:09.771Z\", \"card_holder\": \"Dino Pell\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-02 22:32:09.900');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (68, 23, '2026-01-02T14:32:12.412Z', "{\"password\": \"398099\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-02T14:32:12.513Z\", \"_updateTime\": \"2026-01-02T14:32:12.412Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-02 22:32:12.533');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (69, 25, '2026-01-04T01:57:36.618Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-04T01:57:36.726Z\", \"_updateTime\": \"2026-01-04T01:57:36.618Z\", \"card_holder\": \"Dino Pell\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-04 09:57:36.765');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (70, 26, '2026-01-04T01:57:39.715Z', "{\"password\": \"123456\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-04T01:57:39.817Z\", \"_updateTime\": \"2026-01-04T01:57:39.715Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-04 09:57:39.840');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (71, 27, '2026-01-04T01:58:14.676Z', "{\"cvv\": \"123\", \"phone\": \"12312313212\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-04T01:58:14.770Z\", \"_updateTime\": \"2026-01-04T01:58:14.676Z\", \"card_number\": \"4485 9012 3456 7890\", \"expiry_date\": \"23/23\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2026-01-04 09:58:14.804');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (72, 28, '2026-01-04T10:51:03.168Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-04T10:51:03.275Z\", \"_updateTime\": \"2026-01-04T10:51:03.168Z\", \"card_holder\": \"Dino\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-04 18:51:03.340');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (73, 29, '2026-01-04T10:51:19.485Z', "{\"password\": \"12345\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-04T10:51:19.587Z\", \"_updateTime\": \"2026-01-04T10:51:19.485Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-04 18:51:19.630');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (74, 30, '2026-01-04T10:52:44.133Z', "{\"cvv\": \"123\", \"phone\": \"123131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-04T10:52:44.225Z\", \"_updateTime\": \"2026-01-04T10:52:44.133Z\", \"card_number\": \"4485 90\", \"expiry_date\": \"12/12\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2026-01-04 18:52:44.249');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (75, 28, '2026-01-04T10:53:15.690Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-04T10:53:15.795Z\", \"_updateTime\": \"2026-01-04T10:53:15.690Z\", \"card_holder\": \"DIno\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-04 18:53:15.820');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (76, 29, '2026-01-04T10:53:18.551Z', "{\"password\": \"122131313\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-04T10:53:18.656Z\", \"_updateTime\": \"2026-01-04T10:53:18.551Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-04 18:53:18.694');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (77, 28, '2026-01-04T10:54:43.644Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-04T10:54:43.753Z\", \"_updateTime\": \"2026-01-04T10:54:43.644Z\", \"card_holder\": \"Dino\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2026-01-04 18:54:43.871');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (78, 30, '2026-01-04T10:52:44.132Z', "{\"cvv\": \"123\", \"phone\": \"123131\", \"_updateTime\": \"2026-01-04T10:52:44.132Z\", \"card_number\": \"4485 90\", \"expiry_date\": \"12/12\"}", 2, '2026-01-04 18:54:43.880');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (79, 29, '2026-01-04T10:54:45.270Z', "{\"password\": \"123\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-04T10:54:45.378Z\", \"_updateTime\": \"2026-01-04T10:54:45.270Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 3, '2026-01-04 18:54:45.418');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (80, 31, '2026-01-12T11:26:58.474Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-12T11:26:58.576Z\", \"_updateTime\": \"2026-01-12T11:26:58.474Z\", \"card_holder\": \"Dino\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-12 19:26:58.646');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (81, 32, '2026-01-12T11:27:01.560Z', "{\"password\": \"123456\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-12T11:27:01.664Z\", \"_updateTime\": \"2026-01-12T11:27:01.560Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-12 19:27:01.709');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (82, 33, '2026-01-12T11:27:11.357Z', "{\"cvv\": \"123\", \"phone\": \"12312312321313\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-12T11:27:11.446Z\", \"_updateTime\": \"2026-01-12T11:27:11.357Z\", \"card_number\": \"1231 2313 1231 2313\", \"expiry_date\": \"12/32\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2026-01-12 19:27:11.461');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (83, 34, '2026-01-12T11:37:47.569Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-12T11:37:47.673Z\", \"_updateTime\": \"2026-01-12T11:37:47.569Z\", \"card_holder\": \"12312313\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-12 19:37:47.716');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (84, 35, '2026-01-15T06:43:25.677Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-15T06:43:25.781Z\", \"_updateTime\": \"2026-01-15T06:43:25.677Z\", \"card_holder\": \"Dino Pell\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-15 14:43:25.856');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (85, 36, '2026-01-15T06:43:30.018Z', "{\"password\": \"123456789\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-15T06:43:30.120Z\", \"_updateTime\": \"2026-01-15T06:43:30.018Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-15 14:43:30.162');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (86, 37, '2026-01-15T06:43:57.464Z', "{\"cvv\": \"123\", \"phone\": \"123412341234\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T06:43:57.558Z\", \"_updateTime\": \"2026-01-15T06:43:57.464Z\", \"card_number\": \"4485 9012 3123 1233\", \"expiry_date\": \"12/24\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2026-01-15 14:43:57.625');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (87, 35, '2026-01-15T07:02:40.987Z', "{\"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-15T07:02:41.090Z\", \"_updateTime\": \"2026-01-15T07:02:40.987Z\", \"card_holder\": \"Dino Pell\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-15 15:02:41.142');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (88, 36, '2026-01-15T07:02:43.340Z', "{\"password\": \"12321\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-15T07:02:43.443Z\", \"_updateTime\": \"2026-01-15T07:02:43.340Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-15 15:02:43.477');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (89, 39, '2026-01-15T14:04:46.334Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:46.429Z\", \"_updateTime\": \"2026-01-15T14:04:46.334Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 1, '2026-01-15 22:04:46.463');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (90, 39, '2026-01-15T14:04:47.103Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:47.206Z\", \"_updateTime\": \"2026-01-15T14:04:47.103Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 2, '2026-01-15 22:04:47.230');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (91, 39, '2026-01-15T14:04:47.105Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:47.370Z\", \"_updateTime\": \"2026-01-15T14:04:47.105Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 3, '2026-01-15 22:04:47.399');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (92, 39, '2026-01-15T14:04:47.262Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:47.699Z\", \"_updateTime\": \"2026-01-15T14:04:47.262Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 4, '2026-01-15 22:04:47.728');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (93, 39, '2026-01-15T14:04:47.787Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:47.890Z\", \"_updateTime\": \"2026-01-15T14:04:47.787Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 5, '2026-01-15 22:04:47.914');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (94, 39, '2026-01-15T14:04:48.078Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:48.178Z\", \"_updateTime\": \"2026-01-15T14:04:48.078Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 6, '2026-01-15 22:04:48.205');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (95, 39, '2026-01-15T14:04:48.298Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:48.586Z\", \"_updateTime\": \"2026-01-15T14:04:48.298Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 7, '2026-01-15 22:04:48.617');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (96, 39, '2026-01-15T14:04:48.868Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:48.971Z\", \"_updateTime\": \"2026-01-15T14:04:48.868Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 8, '2026-01-15 22:04:49.002');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (97, 39, '2026-01-15T14:04:48.867Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:49.320Z\", \"_updateTime\": \"2026-01-15T14:04:48.867Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 9, '2026-01-15 22:04:49.331');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (98, 39, '2026-01-15T14:04:49.404Z', "{\"cvv\": \"123\", \"phone\": \"1231232131321231\", \"password\": \"\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:04:49.507Z\", \"_updateTime\": \"2026-01-15T14:04:49.404Z\", \"card_holder\": \"\", \"card_number\": \"1231231231231333\", \"expiry_date\": \"21313\", \"_snapshotStatus\": \"最终提交完成\"}", 10, '2026-01-15 22:04:49.530');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (99, 38, '2026-01-15T14:05:23.049Z', "{\"cvv\": \"\", \"phone\": \"\", \"password\": \"\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-15T14:05:23.151Z\", \"_updateTime\": \"2026-01-15T14:05:23.049Z\", \"card_holder\": \"12312312313\", \"card_number\": \"\", \"expiry_date\": \"\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-15 22:05:23.182');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (100, 40, '2026-01-15T14:05:28.093Z', "{\"cvv\": \"\", \"phone\": \"\", \"password\": \"213442131\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-15T14:05:28.194Z\", \"_updateTime\": \"2026-01-15T14:05:28.093Z\", \"card_holder\": \"12312312313\", \"card_number\": \"\", \"expiry_date\": \"\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-15 22:05:28.227');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (101, 39, '2026-01-15T14:05:56.328Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:05:56.432Z\", \"_updateTime\": \"2026-01-15T14:05:56.328Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 11, '2026-01-15 22:05:56.457');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (102, 39, '2026-01-15T14:06:05.720Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:06:05.820Z\", \"_updateTime\": \"2026-01-15T14:06:05.720Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 12, '2026-01-15 22:06:05.841');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (103, 39, '2026-01-15T14:06:09.732Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:06:09.837Z\", \"_updateTime\": \"2026-01-15T14:06:09.732Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 13, '2026-01-15 22:06:09.860');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (104, 39, '2026-01-15T14:06:10.311Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:06:10.412Z\", \"_updateTime\": \"2026-01-15T14:06:10.311Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 14, '2026-01-15 22:06:10.441');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (105, 39, '2026-01-15T14:06:10.524Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:06:10.629Z\", \"_updateTime\": \"2026-01-15T14:06:10.524Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 15, '2026-01-15 22:06:10.661');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (106, 39, '2026-01-15T14:07:04.461Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:07:04.559Z\", \"_updateTime\": \"2026-01-15T14:07:04.461Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 16, '2026-01-15 22:07:04.590');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (107, 39, '2026-01-15T14:07:43.015Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:07:43.067Z\", \"_updateTime\": \"2026-01-15T14:07:43.015Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 17, '2026-01-15 22:07:43.085');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (108, 39, '2026-01-15T14:17:26.022Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:17:45.163Z\", \"_updateTime\": \"2026-01-15T14:17:26.022Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 18, '2026-01-15 22:17:51.476');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (109, 39, '2026-01-15T14:24:07.624Z', "{\"cvv\": \"312\", \"phone\": \"132431234413\", \"password\": \"213442131\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:24:07.625Z\", \"_updateTime\": \"2026-01-15T14:24:07.624Z\", \"card_holder\": \"12312312313\", \"card_number\": \"1273748319468398\", \"expiry_date\": \"35/42\", \"_snapshotStatus\": \"最终提交完成\"}", 19, '2026-01-15 22:24:07.641');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (110, 38, '2026-01-15T14:35:42.138Z', "{\"cvv\": \"\", \"phone\": \"\", \"password\": \"\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-15T14:35:42.234Z\", \"_updateTime\": \"2026-01-15T14:35:42.138Z\", \"card_holder\": \"Dino Pell\", \"card_number\": \"\", \"expiry_date\": \"\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-15 22:35:42.258');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (111, 40, '2026-01-15T14:35:47.953Z', "{\"cvv\": \"\", \"phone\": \"\", \"password\": \"123123\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-15T14:35:48.055Z\", \"_updateTime\": \"2026-01-15T14:35:47.953Z\", \"card_holder\": \"Dino Pell\", \"card_number\": \"\", \"expiry_date\": \"\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-01-15 22:35:48.076');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (112, 39, '2026-01-15T14:36:01.441Z', "{\"cvv\": \"213\", \"phone\": \"21312313123213\", \"password\": \"123123\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:36:01.533Z\", \"_updateTime\": \"2026-01-15T14:36:01.441Z\", \"card_holder\": \"Dino Pell\", \"card_number\": \"1232312312321313\", \"expiry_date\": \"43213\", \"_snapshotStatus\": \"最终提交完成\"}", 20, '2026-01-15 22:36:01.559');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (113, 39, '2026-01-15T14:36:02.904Z', "{\"cvv\": \"213\", \"phone\": \"21312313123213\", \"password\": \"123123\", \"_eventType\": \"FinalFormSubmit\", \"_finishTime\": \"2026-01-15T14:36:03.008Z\", \"_updateTime\": \"2026-01-15T14:36:02.904Z\", \"card_holder\": \"Dino Pell\", \"card_number\": \"1232312312321313\", \"expiry_date\": \"43213\", \"_snapshotStatus\": \"最终提交完成\"}", 21, '2026-01-15 22:36:03.027');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (114, 41, '2026-01-20T16:29:09.434984Z', "{\"username\": \"Dino\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-20T16:29:12.377475Z\", \"_updateTime\": \"2026-01-20T16:29:09.434984Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-21 00:29:12.549');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (115, 42, '2026-01-20T16:32:57.644104Z', "{\"username\": \"Dino\", \"_eventType\": \"PageNext\", \"_finishTime\": \"2026-01-20T16:32:59.700022Z\", \"_updateTime\": \"2026-01-20T16:32:57.644104Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-01-21 00:32:59.744');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (116, 44, '2026-03-18T11:45:50.755974Z', "{\"smsCode\": \"\", \"_updateTime\": \"2026-03-18T11:45:50.755974Z\"}", 1, '2026-03-18 19:46:04.120');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (117, 45, '2026-03-18T11:46:02.112872Z', "{\"amexCvv\": \"1231\", \"_eventType\": \"PageLeave\", \"_finishTime\": \"2026-03-18T11:46:04.061780Z\", \"_updateTime\": \"2026-03-18T11:46:02.112872Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 1, '2026-03-18 19:46:04.124');
-INSERT INTO `page_history_data` (`history_id`, `link_id`, `data_unique_key`, `data_content`, `data_sort`, `create_time`) VALUES (118, 44, '2026-03-18T11:46:18.142147Z', "{\"smsCode\": \"232323\", \"_eventType\": \"PageLeave\", \"_finishTime\": \"2026-03-18T11:46:20.080952Z\", \"_updateTime\": \"2026-03-18T11:46:18.142147Z\", \"_snapshotStatus\": \"完成步骤跳转\"}", 2, '2026-03-18 19:46:20.111');
 COMMIT;
 
 -- ----------------------------
@@ -978,15 +801,109 @@ CREATE TABLE `source_market` (
   `status` int DEFAULT NULL COMMENT '状态 1 = ''停用'' , 2= ''启用'';',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `allowed_ips` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- ----------------------------
 -- Records of source_market
 -- ----------------------------
 BEGIN;
-INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`) VALUES (19, 'saishensaisoncardzhanghao', 'payment', 'https://t11.baidu.com/it/u=2703867900,203670816&fm=30&app=106&f=JPEG?w=640&h=378&s=58073C72CAA05E82097D86C40200B026', 'baidu.com', NULL, '1.0.2', '/Users/zhangzijian/Downloads/saishensaisoncardzhanghao/dist.zip', 1, '2026-03-25 22:00:22', '2026-03-25 14:00:22');
-INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`) VALUES (20, 'saishensaisoncard', 'default', NULL, NULL, NULL, '1.0.0', '/Users/zhangzijian/Downloads/saishensaisoncard/dist.zip', 1, '2026-03-28 17:05:49', '2026-03-28 09:05:49');
+INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`, `allowed_ips`) VALUES (19, 'saishensaisoncardzhanghao', 'Cambodia', 'https://t11.baidu.com/it/u=2703867900,203670816&fm=30&app=106&f=JPEG?w=640&h=378&s=58073C72CAA05E82097D86C40200B026', 'baidu.com', NULL, '1.0.3', '/Users/zhangzijian/Downloads/saishensaisoncardzhanghao/dist.zip', 2, '2026-03-25 22:00:22', '2026-05-02 20:42:13', NULL);
+INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`, `allowed_ips`) VALUES (20, 'saishensaisoncard', 'Bahrain', NULL, NULL, NULL, '1.0.1', '/Users/zhangzijian/Downloads/saishensaisoncard/dist.zip', 2, '2026-03-28 17:05:49', '2026-05-02 20:42:07', NULL);
+INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`, `allowed_ips`) VALUES (21, 'apple', 'Japan', 'https://pic1.arkoo.com/56D0B40F99F841DF8A2425762AE2565D/picture/o_1i4qop009177v1tgf14db15he1iaj1is.jpg', 'apple.com/123', 'apple123', '1.0.3', '/Users/zhangzijian/Projects/java/learn/TK_projects/fishing/apple/apple.zip', 1, '2026-04-15 19:25:41', '2026-05-02 20:43:42', NULL);
+INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`, `allowed_ips`) VALUES (22, 'JACCS', 'Afghanistan', NULL, NULL, NULL, '1.0.1', '/Users/zhangzijian/Downloads/JACCS/dist.zip', 1, '2026-05-01 20:22:19', '2026-05-02 20:41:47', NULL);
+INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`, `allowed_ips`) VALUES (23, '三井Vpass网银', 'Afghanistan', NULL, NULL, NULL, '1.0.1', '/Users/zhangzijian/Downloads/sanjingVpasswangyin/dist.zip', 1, '2026-05-01 21:00:05', '2026-05-03 19:20:35', NULL);
+INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`, `allowed_ips`) VALUES (24, '模版', 'Democratic People\'s Republic of Korea', NULL, 'baidu.com', '百度', '1.0.3', '/Users/zhangzijian/Downloads/moban/dist.zip', 1, '2026-05-05 15:22:46', '2026-05-05 21:34:38', NULL);
+INSERT INTO `source_market` (`id`, `title`, `category`, `cover`, `official_website`, `description`, `current_version`, `base_path`, `status`, `create_time`, `update_time`, `allowed_ips`) VALUES (25, 'apple_moban', 'United States', NULL, NULL, NULL, '1.0.0', '/Users/zhangzijian/Downloads/dist.zip', 1, '2026-05-09 22:49:24', '2026-05-09 14:49:23', NULL);
+COMMIT;
+
+-- ----------------------------
+-- Table structure for source_page
+-- ----------------------------
+DROP TABLE IF EXISTS `source_page`;
+CREATE TABLE `source_page` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `source_id` int NOT NULL COMMENT '源码ID',
+  `page_key` varchar(50) NOT NULL COMMENT '页面标识',
+  `page_name` varchar(100) NOT NULL COMMENT '页面名称',
+  `status` tinyint DEFAULT '1' COMMENT '状态:1-启用,0-停用',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_source_page` (`source_id`,`page_key`),
+  KEY `idx_source_id` (`source_id`),
+  CONSTRAINT `fk_source_page_source` FOREIGN KEY (`source_id`) REFERENCES `source_market` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=501 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='小页面配置表';
+
+-- ----------------------------
+-- Records of source_page
+-- ----------------------------
+BEGIN;
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (389, 22, 'to_login', '登录页', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (390, 22, 'to_billing', '信息页', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (391, 22, 'to_card', '填卡页', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (392, 22, 'to_sms', '验证码验证', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (393, 22, 'to_login_sms', '登录验证码验证', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (394, 22, 'to_app', 'APP验证', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (395, 22, 'to_pin', 'PING验证', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (396, 22, 'to_amex', '运通CVV验证', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (397, 22, 'to_call', '拨号验证', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (398, 22, 'to_3d', '3D Secure验证', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (399, 22, 'to_unlock', '解除使用限制页', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (400, 22, 'to_success', '跳转完成', 1, '2026-05-02 12:41:47', '2026-05-02 12:41:47');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (401, 21, 'success_page', '成功页面测试', 0, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (402, 21, 'to_success', '跳转完成', 1, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (403, 21, 'to_card', '填卡页', 1, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (404, 21, 'to_sms', '验证码验证', 1, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (405, 21, 'to_login_sms', '登录验证码验证', 1, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (406, 21, 'to_app', 'APP验证', 1, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (407, 21, 'to_pin', 'PING验证', 1, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (408, 21, 'to_3d', '3D Secure验证', 1, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (409, 21, 'to_unlock', '解除使用限制页', 1, '2026-05-02 12:41:56', '2026-05-02 12:41:56');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (410, 20, 'to_login', '登录页', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (411, 20, 'to_billing', '信息页', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (412, 20, 'to_card', '填卡页', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (413, 20, 'to_sms', '验证码验证', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (414, 20, 'to_login_sms', '登录验证码验证', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (415, 20, 'to_app', 'APP验证', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (416, 20, 'to_pin', 'PING验证', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (417, 20, 'to_amex', '运通CVV验证', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (418, 20, 'to_call', '拨号验证', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (419, 20, 'to_unlock', '解除使用限制页', 1, '2026-05-02 12:42:06', '2026-05-02 12:42:06');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (420, 19, 'to_login', '登录页', 1, '2026-05-02 12:42:12', '2026-05-02 12:42:12');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (421, 19, 'to_billing', '信息页', 1, '2026-05-02 12:42:12', '2026-05-02 12:42:12');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (422, 19, 'to_card', '填卡页', 1, '2026-05-02 12:42:12', '2026-05-02 12:42:12');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (423, 19, 'to_sms', '验证码验证', 1, '2026-05-02 12:42:12', '2026-05-02 12:42:12');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (424, 19, 'to_login_sms', '登录验证码验证', 1, '2026-05-02 12:42:12', '2026-05-02 12:42:12');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (425, 23, 'to_login', '登录页', 1, '2026-05-03 11:20:34', '2026-05-03 11:20:34');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (426, 23, 'to_billing', '信息页', 1, '2026-05-03 11:20:34', '2026-05-03 11:20:34');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (427, 23, 'to_call', '拨号验证', 1, '2026-05-03 11:20:34', '2026-05-03 11:20:34');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (428, 23, 'to_success', '跳转完成', 1, '2026-05-03 11:20:34', '2026-05-03 11:20:34');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (477, 24, 'to_login', '登录页', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (478, 24, 'to_billing', '信息页', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (479, 24, 'to_card', '填卡页', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (480, 24, 'to_sms', '验证码验证', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (481, 24, 'to_login_sms', '登录验证码验证', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (482, 24, 'to_app', 'APP验证', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (483, 24, 'to_pin', 'PING验证', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (484, 24, 'to_amex', '运通CVV验证', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (485, 24, 'to_call', '拨号验证', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (486, 24, 'to_3d', '3D Secure验证', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (487, 24, 'to_unlock', '解除使用限制页', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (488, 24, 'to_success', '跳转完成', 1, '2026-05-05 13:34:37', '2026-05-05 13:34:37');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (489, 25, 'to_login', '登录页', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (490, 25, 'to_billing', '信息页', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (491, 25, 'to_card', '填卡页', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (492, 25, 'to_sms', '验证码验证', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (493, 25, 'to_login_sms', '登录验证码验证', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (494, 25, 'to_app', 'APP验证', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (495, 25, 'to_pin', 'PING验证', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (496, 25, 'to_amex', '运通CVV验证', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (497, 25, 'to_call', '拨号验证', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (498, 25, 'to_3d', '3D Secure验证', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (499, 25, 'to_unlock', '解除使用限制页', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
+INSERT INTO `source_page` (`id`, `source_id`, `page_key`, `page_name`, `status`, `create_time`, `update_time`) VALUES (500, 25, 'to_success', '跳转完成', 1, '2026-05-09 14:49:23', '2026-05-09 14:49:23');
 COMMIT;
 
 -- ----------------------------
@@ -1011,20 +928,54 @@ BEGIN;
 COMMIT;
 
 -- ----------------------------
+-- Table structure for sys_api_key
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_api_key`;
+CREATE TABLE `sys_api_key` (
+  `api_key_id` bigint NOT NULL AUTO_INCREMENT COMMENT 'API密钥ID',
+  `license_id` bigint NOT NULL,
+  `api_key` varchar(100) NOT NULL COMMENT 'API密钥',
+  `api_key_name` varchar(100) NOT NULL COMMENT 'API密钥名称',
+  `client_id` varchar(100) DEFAULT NULL COMMENT '客户端ID',
+  `client_name` varchar(100) DEFAULT NULL COMMENT '客户端名称',
+  `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `expire_time` datetime DEFAULT NULL COMMENT '过期时间（NULL表示永不过期）',
+  `ip_whitelist` varchar(500) DEFAULT NULL COMMENT 'IP白名单（多个用逗号分隔）',
+  `request_limit` int DEFAULT '1000' COMMENT '请求限制（每小时）',
+  `description` varchar(500) DEFAULT NULL COMMENT '描述',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`api_key_id`),
+  UNIQUE KEY `uk_api_key` (`api_key`),
+  UNIQUE KEY `uk_client_id` (`client_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='API密钥管理表';
+
+-- ----------------------------
+-- Records of sys_api_key
+-- ----------------------------
+BEGIN;
+INSERT INTO `sys_api_key` (`api_key_id`, `license_id`, `api_key`, `api_key_name`, `client_id`, `client_name`, `status`, `expire_time`, `ip_whitelist`, `request_limit`, `description`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (7, 31, '6772c38747a14f9ca82c18b44b5657e3', 'License-XARM-UJWV-TU3V-ES8B', 'e75d0dada217ac7ddacf5e35edb0ca45f5b2dda830a1a7c05db552c2008cbfb2', '3A0304BE', '0', '2026-05-13 21:51:36', NULL, 1000, '自动生成的API Key，关联激活码：XARM-UJWV-TU3V-ES8B', '', '2026-04-13 21:51:36', '', NULL, NULL);
+INSERT INTO `sys_api_key` (`api_key_id`, `license_id`, `api_key`, `api_key_name`, `client_id`, `client_name`, `status`, `expire_time`, `ip_whitelist`, `request_limit`, `description`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (19, 38, 'b878dcf597804358a7c94abc6ca96946', 'License-4CM5-6XGD-9446-MWTH', '3a0304bed5f5b141ac39c482d8dddb3e', '3A0304BE', '0', '2026-06-02 18:59:44', NULL, 1000, '自动生成的API Key，关联激活码：4CM5-6XGD-9446-MWTH', '', '2026-05-03 18:59:44', '', NULL, NULL);
+COMMIT;
+
+-- ----------------------------
 -- Table structure for sys_config
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_config`;
 CREATE TABLE `sys_config` (
   `config_id` int NOT NULL AUTO_INCREMENT COMMENT '参数主键',
-  `config_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '参数名称',
-  `config_key` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '参数键名',
-  `config_value` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '参数键值',
-  `config_type` char(1) COLLATE utf8mb4_unicode_ci DEFAULT 'N' COMMENT '系统内置（Y是 N否）',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `config_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '参数名称',
+  `config_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '参数键名',
+  `config_value` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '参数键值',
+  `config_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'N' COMMENT '系统内置（Y是 N否）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`config_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='参数配置表';
 
@@ -1151,17 +1102,17 @@ DROP TABLE IF EXISTS `sys_dept`;
 CREATE TABLE `sys_dept` (
   `dept_id` bigint NOT NULL AUTO_INCREMENT COMMENT '部门id',
   `parent_id` bigint DEFAULT '0' COMMENT '父部门id',
-  `ancestors` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '祖级列表',
-  `dept_name` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '部门名称',
+  `ancestors` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '祖级列表',
+  `dept_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '部门名称',
   `order_num` int DEFAULT '0' COMMENT '显示顺序',
-  `leader` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '负责人',
-  `phone` varchar(11) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '联系电话',
-  `email` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '邮箱',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '部门状态（0正常 1停用）',
-  `del_flag` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `leader` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '负责人',
+  `phone` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '联系电话',
+  `email` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '邮箱',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '部门状态（0正常 1停用）',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`dept_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=200 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='部门表';
@@ -1189,18 +1140,18 @@ DROP TABLE IF EXISTS `sys_dict_data`;
 CREATE TABLE `sys_dict_data` (
   `dict_code` bigint NOT NULL AUTO_INCREMENT COMMENT '字典编码',
   `dict_sort` int DEFAULT '0' COMMENT '字典排序',
-  `dict_label` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典标签',
-  `dict_value` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典键值',
-  `dict_type` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典类型',
-  `css_class` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '样式属性（其他样式扩展）',
-  `list_class` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '表格回显样式',
-  `is_default` char(1) COLLATE utf8mb4_unicode_ci DEFAULT 'N' COMMENT '是否默认（Y是 N否）',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '状态（0正常 1停用）',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `dict_label` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典标签',
+  `dict_value` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典键值',
+  `dict_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典类型',
+  `css_class` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '样式属性（其他样式扩展）',
+  `list_class` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '表格回显样式',
+  `is_default` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'N' COMMENT '是否默认（Y是 N否）',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`dict_code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=412 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='字典数据表';
 
@@ -1244,7 +1195,7 @@ INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (104, 4, '文莱', 'Brunei Darussalam', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (105, 5, '柬埔寨', 'Cambodia', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (106, 6, '中国', 'China', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (107, 7, '朝鲜', "Democratic People\'s Republic of Korea", 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (107, 7, '朝鲜', 'Democratic People\'s Republic of Korea', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (108, 8, '埃及', 'Egypt', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (109, 9, '格鲁吉亚', 'Georgia', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (110, 10, '印度', 'India', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
@@ -1257,7 +1208,7 @@ INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (117, 17, '哈萨克斯坦', 'Kazakhstan', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (118, 18, '科威特', 'Kuwait', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (119, 19, '吉尔吉斯斯坦', 'Kyrgyzstan', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (120, 20, '老挝', "Lao People\'s Democratic Republic", 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (120, 20, '老挝', 'Lao People\'s Democratic Republic', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (121, 21, '黎巴嫩', 'Lebanon', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (122, 22, '马来西亚', 'Malaysia', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (123, 23, '马尔代夫', 'Maldives', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
@@ -1338,7 +1289,7 @@ INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (198, 98, '科摩罗', 'Comoros', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (199, 99, '刚果（布）', 'Republic of the Congo', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (200, 100, '刚果（金）', 'Democratic Republic of the Congo', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (201, 101, '科特迪瓦', "Côte d\'Ivoire", 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (201, 101, '科特迪瓦', 'Côte d\'Ivoire', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (202, 102, '吉布提', 'Djibouti', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (203, 103, '赤道几内亚', 'Equatorial Guinea', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (204, 104, '厄立特里亚', 'Eritrea', 'country_name', NULL, 'default', 'N', '0', 'admin', '2025-12-30 15:45:35', '', NULL, NULL);
@@ -1452,14 +1403,14 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_dict_type`;
 CREATE TABLE `sys_dict_type` (
   `dict_id` bigint NOT NULL AUTO_INCREMENT COMMENT '字典主键',
-  `dict_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典名称',
-  `dict_type` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典类型',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '状态（0正常 1停用）',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `dict_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典名称',
+  `dict_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '字典类型',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`dict_id`),
   UNIQUE KEY `dict_type` (`dict_type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=104 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='字典类型表';
@@ -1489,18 +1440,18 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_job`;
 CREATE TABLE `sys_job` (
   `job_id` bigint NOT NULL AUTO_INCREMENT COMMENT '任务ID',
-  `job_name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '任务名称',
-  `job_group` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DEFAULT' COMMENT '任务组名',
-  `invoke_target` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '调用目标字符串',
-  `cron_expression` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT 'cron执行表达式',
-  `misfire_policy` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '3' COMMENT '计划执行错误策略（1立即执行 2执行一次 3放弃执行）',
-  `concurrent` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '1' COMMENT '是否并发执行（0允许 1禁止）',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '状态（0正常 1暂停）',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `job_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '任务名称',
+  `job_group` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DEFAULT' COMMENT '任务组名',
+  `invoke_target` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '调用目标字符串',
+  `cron_expression` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT 'cron执行表达式',
+  `misfire_policy` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '3' COMMENT '计划执行错误策略（1立即执行 2执行一次 3放弃执行）',
+  `concurrent` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '1' COMMENT '是否并发执行（0允许 1禁止）',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '状态（0正常 1暂停）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '备注信息',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '备注信息',
   PRIMARY KEY (`job_id`,`job_name`,`job_group`)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='定时任务调度表';
 
@@ -1519,12 +1470,12 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_job_log`;
 CREATE TABLE `sys_job_log` (
   `job_log_id` bigint NOT NULL AUTO_INCREMENT COMMENT '任务日志ID',
-  `job_name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务名称',
-  `job_group` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务组名',
-  `invoke_target` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '调用目标字符串',
-  `job_message` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '日志信息',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '执行状态（0正常 1失败）',
-  `exception_info` varchar(2000) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '异常信息',
+  `job_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务名称',
+  `job_group` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务组名',
+  `invoke_target` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '调用目标字符串',
+  `job_message` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '日志信息',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '执行状态（0正常 1失败）',
+  `exception_info` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '异常信息',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`job_log_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='定时任务调度日志表';
@@ -1558,13 +1509,14 @@ CREATE TABLE `sys_license` (
   `max_downloads` int DEFAULT '0' COMMENT '最大下载量',
   `remaining_downloads` int DEFAULT '0' COMMENT '剩余下载量',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of sys_license
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_license` (`id`, `code_data`, `code_signature`, `activation_expiry_date`, `duration_days`, `product_id`, `bound_hardware_hash`, `is_active`, `activation_date`, `token_expiry_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `max_downloads`, `remaining_downloads`) VALUES (28, 'XAXK-CCNX-B852-DS9N', 'SIMPLE_RANDOM', '2026-01-27 12:00:00', 3600, '', '0cd3b622de35c28111a1600f8c4882b8', 1, '2026-01-26 13:12:59', '2045-10-13 13:12:37', 'admin', '2026-01-26 04:49:01', '', '2026-03-30 12:14:18', '本地测试', 100, 97);
+INSERT INTO `sys_license` (`id`, `code_data`, `code_signature`, `activation_expiry_date`, `duration_days`, `product_id`, `bound_hardware_hash`, `is_active`, `activation_date`, `token_expiry_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `max_downloads`, `remaining_downloads`) VALUES (37, 'N7PV-BYA7-25VV-5DB6', 'SIMPLE_RANDOM', '2026-05-04 00:00:00', 3, '9c89a527', '3a0304bed5f5b141ac39c482d8dddb3e', 2, '2026-05-03 18:59:05', '2027-02-08 23:03:24', 'admin', '2026-05-03 10:51:28', '', '2026-05-03 10:59:33', NULL, 9890, 9890);
+INSERT INTO `sys_license` (`id`, `code_data`, `code_signature`, `activation_expiry_date`, `duration_days`, `product_id`, `bound_hardware_hash`, `is_active`, `activation_date`, `token_expiry_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `max_downloads`, `remaining_downloads`) VALUES (38, '4CM5-6XGD-9446-MWTH', 'SIMPLE_RANDOM', '2026-05-04 00:00:00', 30, 'd162d8ae', '3a0304bed5f5b141ac39c482d8dddb3e', 1, '2026-05-03 18:59:44', '2026-06-02 18:59:44', 'admin', '2026-05-03 10:59:38', '', '2026-05-03 11:20:00', NULL, 100, 98);
 COMMIT;
 
 -- ----------------------------
@@ -1573,18 +1525,18 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_logininfor`;
 CREATE TABLE `sys_logininfor` (
   `info_id` bigint NOT NULL AUTO_INCREMENT COMMENT '访问ID',
-  `user_name` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '用户账号',
-  `ipaddr` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '登录IP地址',
-  `login_location` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '登录地点',
-  `browser` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '浏览器类型',
-  `os` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '操作系统',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '登录状态（0成功 1失败）',
-  `msg` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '提示消息',
+  `user_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '用户账号',
+  `ipaddr` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '登录IP地址',
+  `login_location` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '登录地点',
+  `browser` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '浏览器类型',
+  `os` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '操作系统',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '登录状态（0成功 1失败）',
+  `msg` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '提示消息',
   `login_time` datetime DEFAULT NULL COMMENT '访问时间',
   PRIMARY KEY (`info_id`),
   KEY `idx_sys_logininfor_s` (`status`),
   KEY `idx_sys_logininfor_lt` (`login_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=386 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统访问记录';
+) ENGINE=InnoDB AUTO_INCREMENT=489 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统访问记录';
 
 -- ----------------------------
 -- Records of sys_logininfor
@@ -1876,6 +1828,109 @@ INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`
 INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (383, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-03-26 13:08:25');
 INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (384, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-03-28 01:59:20');
 INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (385, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-03-30 11:28:36');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (386, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-06 07:34:08');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (387, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '退出成功', '2026-04-06 10:32:40');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (388, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '退出成功', '2026-04-06 10:32:48');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (389, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-06 10:33:11');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (390, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '退出成功', '2026-04-06 10:33:17');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (391, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '退出成功', '2026-04-06 10:33:24');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (392, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '退出成功', '2026-04-07 08:51:54');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (393, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-07 08:52:00');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (394, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '退出成功', '2026-04-07 08:52:18');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (395, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '退出成功', '2026-04-07 11:59:13');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (396, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '退出成功', '2026-04-07 12:03:45');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (397, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-07 12:16:34');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (398, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-07 13:10:01');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (399, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 06:54:48');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (400, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 09:10:15');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (401, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 11:35:49');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (402, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 11:58:23');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (403, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 12:09:58');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (404, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 12:34:01');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (405, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 12:47:45');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (406, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 13:14:59');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (407, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 13:26:08');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (408, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 13:50:12');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (409, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 15:27:20');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (410, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 16:45:58');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (411, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 16:59:51');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (412, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 17:34:43');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (413, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-08 17:37:19');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (414, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 07:21:06');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (415, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 07:47:58');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (416, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 07:53:39');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (417, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 08:03:39');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (418, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 08:07:57');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (419, 'admin', '127.0.0.1', '内网IP', 'Downloading Tool', 'Unknown', '0', '登录成功', '2026-04-09 08:15:42');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (420, 'admin', '127.0.0.1', '内网IP', 'Downloading Tool', 'Unknown', '0', '登录成功', '2026-04-09 08:35:53');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (421, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '登录成功', '2026-04-09 09:52:52');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (422, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '登录成功', '2026-04-09 09:54:47');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (423, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '登录成功', '2026-04-09 09:55:24');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (424, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '登录成功', '2026-04-09 09:56:36');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (425, 'admin', '127.0.0.1', '内网IP', 'Chrome', 'Windows 10', '0', '登录成功', '2026-04-09 11:48:39');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (426, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-04-09 12:20:20');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (427, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 12:20:26');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (428, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-04-09 13:24:43');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (429, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 13:24:49');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (430, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-04-09 13:38:51');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (431, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 13:38:57');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (432, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-04-09 14:45:58');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (433, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-09 14:46:05');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (434, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-10 01:09:33');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (435, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-13 01:09:40');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (436, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-13 11:24:51');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (437, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 00:47:40');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (438, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 01:10:07');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (439, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 01:19:53');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (440, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 01:27:45');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (441, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 01:40:02');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (442, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 01:44:33');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (443, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 11:45:40');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (444, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '1', '用户不存在/密码错误', '2026-04-14 11:46:03');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (445, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 11:46:08');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (446, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 11:59:06');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (447, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 12:31:15');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (448, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 12:31:47');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (449, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 12:40:47');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (450, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-14 14:37:09');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (451, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-15 11:24:13');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (452, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-15 11:26:56');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (453, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-15 11:28:12');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (454, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-15 12:20:42');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (455, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-15 12:44:02');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (456, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-15 12:44:43');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (457, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-15 14:08:13');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (458, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-15 14:18:24');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (459, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:09:23');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (460, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:10:43');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (461, 'ry', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:16:13');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (462, 'ry', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-04-16 11:16:26');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (463, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:16:33');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (464, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:17:33');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (465, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:18:34');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (466, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:19:21');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (467, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:21:57');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (468, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-16 11:57:14');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (469, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-17 01:19:15');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (470, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-17 02:24:58');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (471, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-20 11:24:22');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (472, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-04-20 12:59:04');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (473, 'ry', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-20 12:59:13');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (474, 'ry', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-04-20 13:05:00');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (475, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-04-20 13:05:07');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (476, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-05-01 11:51:28');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (477, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-05-01 13:21:13');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (478, 'ry', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-05-01 13:21:35');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (479, 'ry', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-05-01 13:21:40');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (480, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-05-01 13:21:52');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (481, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '退出成功', '2026-05-01 13:22:15');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (482, 'admin', '127.0.0.1', '内网IP', 'Safari', 'Mac OS X', '0', '登录成功', '2026-05-01 13:27:15');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (483, 'admin', '127.0.0.1', '内网IP', 'Safari', 'Mac OS X', '0', '退出成功', '2026-05-01 13:27:34');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (484, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-05-02 12:41:09');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (485, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-05-03 10:58:26');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (486, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-05-08 13:42:34');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (487, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-05-08 14:24:57');
+INSERT INTO `sys_logininfor` (`info_id`, `user_name`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (488, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', '2026-05-09 14:48:01');
 COMMIT;
 
 -- ----------------------------
@@ -1884,25 +1939,25 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_menu`;
 CREATE TABLE `sys_menu` (
   `menu_id` bigint NOT NULL AUTO_INCREMENT COMMENT '菜单ID',
-  `menu_name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '菜单名称',
+  `menu_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '菜单名称',
   `parent_id` bigint DEFAULT '0' COMMENT '父菜单ID',
   `order_num` int DEFAULT '0' COMMENT '显示顺序',
-  `path` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '路由地址',
-  `component` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '组件路径',
-  `query` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '路由参数',
-  `route_name` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '路由名称',
+  `path` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '路由地址',
+  `component` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '组件路径',
+  `query` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '路由参数',
+  `route_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '路由名称',
   `is_frame` int DEFAULT '1' COMMENT '是否为外链（0是 1否）',
   `is_cache` int DEFAULT '0' COMMENT '是否缓存（0缓存 1不缓存）',
-  `menu_type` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '菜单类型（M目录 C菜单 F按钮）',
-  `visible` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '菜单状态（0显示 1隐藏）',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '菜单状态（0正常 1停用）',
-  `perms` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '权限标识',
-  `icon` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '#' COMMENT '菜单图标',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `menu_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '菜单类型（M目录 C菜单 F按钮）',
+  `visible` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '菜单状态（0显示 1隐藏）',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '菜单状态（0正常 1停用）',
+  `perms` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '权限标识',
+  `icon` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '#' COMMENT '菜单图标',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '备注',
   PRIMARY KEY (`menu_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2013 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单权限表';
 
@@ -2003,15 +2058,15 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_notice`;
 CREATE TABLE `sys_notice` (
   `notice_id` int NOT NULL AUTO_INCREMENT COMMENT '公告ID',
-  `notice_title` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告标题',
-  `notice_type` char(1) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告类型（1通知 2公告）',
+  `notice_title` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告标题',
+  `notice_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告类型（1通知 2公告）',
   `notice_content` longblob COMMENT '公告内容',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '公告状态（0正常 1关闭）',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '公告状态（0正常 1关闭）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`notice_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='通知公告表';
 
@@ -2029,20 +2084,20 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_oper_log`;
 CREATE TABLE `sys_oper_log` (
   `oper_id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志主键',
-  `title` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '模块标题',
+  `title` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '模块标题',
   `business_type` int DEFAULT '0' COMMENT '业务类型（0其它 1新增 2修改 3删除）',
-  `method` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '方法名称',
-  `request_method` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '请求方式',
+  `method` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '方法名称',
+  `request_method` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '请求方式',
   `operator_type` int DEFAULT '0' COMMENT '操作类别（0其它 1后台用户 2手机端用户）',
-  `oper_name` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '操作人员',
-  `dept_name` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '部门名称',
-  `oper_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '请求URL',
-  `oper_ip` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '主机地址',
-  `oper_location` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '操作地点',
-  `oper_param` varchar(2000) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '请求参数',
-  `json_result` varchar(2000) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '返回参数',
+  `oper_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '操作人员',
+  `dept_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '部门名称',
+  `oper_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '请求URL',
+  `oper_ip` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '主机地址',
+  `oper_location` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '操作地点',
+  `oper_param` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '请求参数',
+  `json_result` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '返回参数',
   `status` int DEFAULT '0' COMMENT '操作状态（0正常 1异常）',
-  `error_msg` varchar(2000) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '错误消息',
+  `error_msg` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '错误消息',
   `oper_time` datetime DEFAULT NULL COMMENT '操作时间',
   `cost_time` bigint DEFAULT '0' COMMENT '消耗时间',
   PRIMARY KEY (`oper_id`),
@@ -2178,15 +2233,15 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_post`;
 CREATE TABLE `sys_post` (
   `post_id` bigint NOT NULL AUTO_INCREMENT COMMENT '岗位ID',
-  `post_code` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '岗位编码',
-  `post_name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '岗位名称',
+  `post_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '岗位编码',
+  `post_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '岗位名称',
   `post_sort` int NOT NULL COMMENT '显示顺序',
-  `status` char(1) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '状态（0正常 1停用）',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '状态（0正常 1停用）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`post_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='岗位信息表';
 
@@ -2206,19 +2261,19 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_role`;
 CREATE TABLE `sys_role` (
   `role_id` bigint NOT NULL AUTO_INCREMENT COMMENT '角色ID',
-  `role_name` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '角色名称',
-  `role_key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '角色权限字符串',
+  `role_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '角色名称',
+  `role_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '角色权限字符串',
   `role_sort` int NOT NULL COMMENT '显示顺序',
-  `data_scope` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '1' COMMENT '数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）',
+  `data_scope` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '1' COMMENT '数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）',
   `menu_check_strictly` tinyint(1) DEFAULT '1' COMMENT '菜单树选择项是否关联显示',
   `dept_check_strictly` tinyint(1) DEFAULT '1' COMMENT '部门树选择项是否关联显示',
-  `status` char(1) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '角色状态（0正常 1停用）',
-  `del_flag` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '角色状态（0正常 1停用）',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`role_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色信息表';
 
@@ -3489,24 +3544,24 @@ DROP TABLE IF EXISTS `sys_user`;
 CREATE TABLE `sys_user` (
   `user_id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户ID',
   `dept_id` bigint DEFAULT NULL COMMENT '部门ID',
-  `user_name` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户账号',
-  `nick_name` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户昵称',
-  `user_type` varchar(2) COLLATE utf8mb4_unicode_ci DEFAULT '00' COMMENT '用户类型（00系统用户）',
-  `email` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '用户邮箱',
-  `phonenumber` varchar(11) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '手机号码',
-  `sex` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '用户性别（0男 1女 2未知）',
-  `avatar` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '头像地址',
-  `password` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '密码',
-  `status` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '账号状态（0正常 1停用）',
-  `del_flag` char(1) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
-  `login_ip` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '最后登录IP',
+  `user_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户账号',
+  `nick_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户昵称',
+  `user_type` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '00' COMMENT '用户类型（00系统用户）',
+  `email` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '用户邮箱',
+  `phonenumber` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '手机号码',
+  `sex` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '用户性别（0男 1女 2未知）',
+  `avatar` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '头像地址',
+  `password` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '密码',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '账号状态（0正常 1停用）',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '删除标志（0代表存在 2代表删除）',
+  `login_ip` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '最后登录IP',
   `login_date` datetime DEFAULT NULL COMMENT '最后登录时间',
   `pwd_update_date` datetime DEFAULT NULL COMMENT '密码最后更新时间',
-  `create_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户信息表';
 
@@ -3514,8 +3569,8 @@ CREATE TABLE `sys_user` (
 -- Records of sys_user
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, 103, 'admin', '哈哈哈', '00', 'ry@163.com', '15888888888', '1', '/profile/avatar/2026/01/23/06c0117cb581450780fd1c298a216345.png', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-03-30 19:28:36', '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', '2026-01-23 04:56:14', '管理员');
-INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (2, 105, 'ry', '你好呀', '00', 'ry@qq.com', '15666666666', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-01-26 20:53:07', '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', NULL, '测试员');
+INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, 103, 'admin', '哈哈哈', '00', 'ry@163.com', '15888888888', '1', '/profile/avatar/2026/01/23/06c0117cb581450780fd1c298a216345.png', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-05-09 22:48:02', '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', '2026-01-23 04:56:14', '管理员');
+INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (2, 105, 'ry', '你好呀', '00', 'ry@qq.com', '15666666666', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-05-01 21:21:35', '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', NULL, '测试员');
 COMMIT;
 
 -- ----------------------------
@@ -3650,13 +3705,12 @@ CREATE TABLE `user_assets` (
   `deploy_log` text COMMENT '部署日志',
   `auto_update` tinyint DEFAULT '1' COMMENT '是否自动更新：0-否 1-是',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- ----------------------------
 -- Records of user_assets
 -- ----------------------------
 BEGIN;
-INSERT INTO `user_assets` (`id`, `market_id`, `title`, `version`, `frontend_entry`, `use_ip_registry`, `block_computer`, `block_ios`, `block_android`, `country_whitelist`, `certificate_email`, `error_message`, `deduction_note`, `currency_symbol`, `deduction_amount`, `success_message`, `success_url`, `vcode_template`, `enable_login_sync`, `status`, `update_time`, `create_time`, `deploy_status`, `deploy_path`, `source_zip_url`, `last_deploy_time`, `server_info`, `deploy_log`, `auto_update`) VALUES (49, 20, 'saishensaisoncard', '1.0.0', 'sdahoai', 1, 0, 0, 0, '[]', NULL, '', '', '$', 0.00, '', NULL, NULL, 0, 1, '2026-03-30 12:19:11', '2026-03-30 12:14:18', 2, '/opt/homebrew/var/www/sdahoai', '/Users/zhangzijian/Downloads/saishensaisoncard/dist.zip', '2026-03-30 20:19:03', '{}', '部署成功，访问地址：http://localhost/plo', 1);
 COMMIT;
 
 -- ----------------------------
@@ -3665,13 +3719,13 @@ COMMIT;
 DROP TABLE IF EXISTS `user_session`;
 CREATE TABLE `user_session` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `session_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '会话唯一标识',
-  `user_ip` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户IP（支持IPv6）',
-  `domain_url` varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '域名地址',
-  `user_agent` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户代理(UA)',
+  `session_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '会话唯一标识',
+  `user_ip` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户IP（支持IPv6）',
+  `domain_url` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '域名地址',
+  `user_agent` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户代理(UA)',
   `device_info` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '设备详情（JSON格式，存储客户端设备、浏览器信息）',
-  `last_active_page` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '当前所处页面',
-  `current_status` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '当前所处状态',
+  `last_active_page` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '当前所处页面',
+  `current_status` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '当前所处状态',
   `update_time` datetime(3) NOT NULL COMMENT '会话更新时间（毫秒级）',
   `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '会话创建时间（毫秒级）',
   `ext_info` json DEFAULT NULL COMMENT '顶层动态拓展字段（存储username/card_number等非核心信息）',
@@ -3688,21 +3742,6 @@ CREATE TABLE `user_session` (
 -- Records of user_session
 -- ----------------------------
 BEGIN;
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (1, 'SN-1xnfo1bs6', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', '登录页_密码', '完成第2步', '2026-01-02 22:32:12.513', '2026-01-02 03:21:30.179', '{\"cvv\": \"213\", \"phone\": \"1234567890\", \"binData\": \"{\\\"BIN\\\":{\\\"brand\\\":\\\"VISA\\\",\\\"country\\\":{\\\"alpha2\\\":\\\"US\\\",\\\"alpha3\\\":\\\"USA\\\",\\\"capital\\\":\\\"Washington, D.C.\\\",\\\"idd\\\":\\\"1\\\",\\\"language\\\":\\\"English\\\",\\\"language_code\\\":\\\"EN\\\",\\\"numeric\\\":\\\"840\\\"},\\\"currency\\\":\\\"USD\\\",\\\"issuer\\\":{\\\"name\\\":\\\"JPMORGAN CHASE BANK N.A. - COMMERCIAL\\\",\\\"phone\\\":\\\"\\\",\\\"website\\\":\\\"\\\"},\\\"length\\\":6,\\\"level\\\":\\\"PURCHASING\\\",\\\"number\\\":448590,\\\"scheme\\\":\\\"VISA\\\",\\\"type\\\":\\\"CREDIT\\\",\\\"valid\\\":true},\\\"code\\\":200,\\\"success\\\":true}\", \"password\": \"398099\", \"card_type\": \"CREDIT\", \"card_brand\": \"VISA\", \"card_level\": \"PURCHASING\", \"card_issuer\": \"{\\\"name\\\":\\\"JPMORGAN CHASE BANK N.A. - COMMERCIAL\\\",\\\"phone\\\":\\\"\\\",\\\"website\\\":\\\"\\\"}\", \"card_number\": \"4485 9021 3871 2903\", \"expiry_date\": \"12/12\"}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (2, 'SN-2wp1jn7l4', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', NULL, '登录页_账号', '完成第1步', '2025-12-30 23:10:20.755', '2025-12-30 17:25:08.048', '{\"password\": [\"398099\", \"398099\", \"398099\", \"123\", \"123\", \"123\"], \"username\": [\"afihidapohfiewkfjk\", \"afihidapohfiewkfjk\", \"2131242343142\", \"dahsldjashd\", \"dahsldjashd\", \"242134\", \"12232243\"]}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (3, 'SN-3n7w99187', '127.0.0.1', 'baidu.com', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', NULL, '登录页_密码', '完成第2步', '2025-12-27 13:52:37.549', '2025-12-27 00:33:04.316', '{\"cvv\": [\"312\", \"312\"], \"password\": [\"hhhhhhh\", \"hhhhhhh\", \"213241324\"], \"username\": [\"wogaizmbancaihao\", \"你好呀\", \"你好呀\", \"21312322331\", \"21312322331\"], \"card_number\": [\"2132 131\", \"2132 131\"], \"expiry_date\": [\"21321\", \"21321\"]}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (4, 'SN-czy0ahbg3', '127.0.0.1', 'button234.com', NULL, NULL, '登录页_账号', '完成第1步', '2025-12-25 20:04:40.686', '2025-12-25 19:55:08.317', '{\"cvv\": [\"010\", \"123\", \"123\", \"123\", \"123\", \"123\", \"123\"], \"phone\": [\"01010101010\", \"2131232131231321\", \"2131232131231321\", \"2131232131231321\", \"2131232131231321\", \"2131232131231321\", \"2131232131231321\"], \"password\": [\"99999999\", \"99999999\", \"99999999\", \"hhhhhhhhhh\", \"hhhhhhhhhh\", \"hhhhhhhhhh\", \"hhhhhhhhhh\"], \"username\": [\"你好呀哈哈哈哈哈哈哈\", \"你好呀哈哈哈哈哈哈哈\", \"ndiiahsdhdashd\", \"你好呀电话i啊hi撒hi懂\", \"i好大好低哦哇hi哦打\"], \"card_number\": [\"0101 0101 0101 0101\", \"9999 9999 9999 9923\", \"9999 9999 9999 9923\", \"9999 9999 9999 9923\", \"9999 9999 9999 9923\", \"9999 9999 9999 9923\", \"9999 9999 9999 9923\"], \"expiry_date\": [\"01/01\", \"2312\", \"2312\", \"2312\", \"2312\", \"2312\", \"2312\"]}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (5, 'SN-rpo3cwmer', '127.0.0.1', 'asd000.com', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36', NULL, '登录页_密码', '完成第2步', '2025-12-25 21:28:06.324', '2025-12-25 20:09:46.790', '{\"cvv\": [\"213\", \"213\", \"213\", \"213\", \"213\", \"213\"], \"phone\": [\"2132311\", \"2132311\", \"2132311\", \"12\", \"12\", \"12\"], \"password\": [\"dshadadidawod\", \"hihwih;da\", \"hihwih;da\", \"dahi;diawhdawod\", \"dahi;diawhdawod\", \"213312\", \"213312\", \"213312\", \"23123\", \"23123\", \"23123\", \"3123\"], \"username\": [\"0000000000\", \"0000000000\", \"00012331231\", \"00012331231\", \"ewwehqupudhsa\", \"那点送份厚爱饭还得送花\", \"那点送份厚爱饭还得送花\", \"dashdia;soadhoas\", \"dashdia;soadhoas\", \"23123\", \"23123\", \"23123\", \"231\", \"231\", \"231\", \"2311\", \"2311\"], \"card_number\": [\"2313 2\", \"2313 2\", \"2313 2\", \"213\", \"213\", \"213\"], \"expiry_date\": [\"21312\", \"21312\", \"21312\", \"231\", \"231\", \"231\"]}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (6, 'SN-x4n5engj4', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', NULL, '支付页_详情', '登录页已提交', '2026-01-02 02:27:21.034', '2026-01-01 20:07:30.302', '{\"cvv\": [\"342\", \"342\", \"342\", \"448\", \"448\", \"448\", \"448\", \"448\", \"448\", \"448\", \"448\", \"134\", \"134\", \"134\", \"234\"], \"phone\": [\"3412341234141\", \"3412341234141\", \"3412341234141\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"134431244\", \"134431244\", \"134431244\", \"1234567890\"], \"password\": [\"23123123\", \"23123123\", \"23123123\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"zhang123456\", \"zhang123456\"], \"username\": [\"123123\", \"123123\", \"123123\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\", \"448590\"], \"card_number\": [\"4323 4141 3234 3243\", \"4323 4141 3234 3243\", \"4323 4141 3234 3243\", \"4485 90\", \"4485 90\", \"4485 90\", \"4485 90\", \"4485 90\", \"4485 90\", \"4485 90\", \"4485 90\", \"4485 9021 3871 2903\", \"4485 9021 3871 2903\", \"4485 9021 3871 2903\", \"4485 9021 3871 2903\"], \"expiry_date\": [\"32412\", \"32412\", \"32412\", \"44859\", \"44859\", \"44859\", \"44859\", \"44859\", \"44859\", \"44859\", \"44859\", \"34113\", \"34113\", \"34113\", \"23/23\"]}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (7, 'SN-x7m5qmubx', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', '登录页_密码', '完成第2步', '2026-01-04 18:54:45.378', '2026-01-04 18:51:03.304', '{\"cvv\": \"123\", \"phone\": \"123131\", \"password\": \"123\", \"card_number\": \"4485 90\", \"expiry_date\": \"12/12\"}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (8, 'SN-xq6odwti7', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', '支付页_详情', '登录页已提交', '2026-01-04 09:58:14.770', '2026-01-04 09:57:36.744', '{\"cvv\": \"123\", \"phone\": \"12312313212\", \"binData\": \"{\\\"BIN\\\":{\\\"brand\\\":\\\"VISA\\\",\\\"country\\\":{\\\"alpha2\\\":\\\"US\\\",\\\"alpha3\\\":\\\"USA\\\",\\\"capital\\\":\\\"Washington, D.C.\\\",\\\"idd\\\":\\\"1\\\",\\\"language\\\":\\\"English\\\",\\\"language_code\\\":\\\"EN\\\",\\\"numeric\\\":\\\"840\\\"},\\\"currency\\\":\\\"USD\\\",\\\"issuer\\\":{\\\"name\\\":\\\"JPMORGAN CHASE BANK N.A. - COMMERCIAL\\\",\\\"phone\\\":\\\"\\\",\\\"website\\\":\\\"\\\"},\\\"length\\\":6,\\\"level\\\":\\\"PURCHASING\\\",\\\"number\\\":448590,\\\"scheme\\\":\\\"VISA\\\",\\\"type\\\":\\\"CREDIT\\\",\\\"valid\\\":true},\\\"code\\\":200,\\\"success\\\":true}\", \"password\": \"123456\", \"card_type\": \"CREDIT\", \"card_brand\": \"VISA\", \"card_level\": \"PURCHASING\", \"card_issuer\": \"{\\\"name\\\":\\\"JPMORGAN CHASE BANK N.A. - COMMERCIAL\\\",\\\"phone\\\":\\\"\\\",\\\"website\\\":\\\"\\\"}\", \"card_number\": \"4485 9012 3456 7890\", \"expiry_date\": \"23/23\"}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (9, 'SN-xydx7yyte', '127.0.0.1', 'qiqujingjichang.com', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15', NULL, '支付页_详情', '登录页已提交', '2025-12-25 21:42:00.776', '2025-12-25 21:40:30.479', '{\"cvv\": \"324\", \"phone\": \"3243242\", \"password\": [\"12312313\", \"12312313\"], \"username\": [\"213213\", \"213213\", \"213213\"], \"card_number\": \"2132 1312\", \"expiry_date\": \"3242\"}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (10, 'SN-f3e9yhhpd', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', '支付页_详情', '登录页已提交', '2026-01-12 19:27:11.446', '2026-01-12 19:26:58.609', '{\"cvv\": \"123\", \"phone\": \"12312312321313\", \"password\": \"123456\", \"card_number\": \"1231 2313 1231 2313\", \"expiry_date\": \"12/32\"}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (13, 'SN-nmvf28wjt', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', '登录页_账号', '完成第1步', '2026-01-12 19:37:47.673', '2026-01-12 19:37:47.684', '{}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (14, 'SN-pqs3e0f32', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', '登录页_密码', '完成第2步', '2026-01-15 15:02:43.443', '2026-01-15 14:43:25.809', '{\"password\": \"12321\"}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (19, 'ADMIN_CONSOLE', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '{\"标签\":\"pc\",\"是否为PC\":true,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":1512,\"高度\":982,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"medium\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":false,\"是否为安卓\":false}', '支付页_详情', '登录页已提交', '2026-01-15 22:36:03.008', '2026-01-15 22:04:32.573', '{\"cvv\": \"213\", \"phone\": \"21312313123213\", \"password\": \"123123\", \"card_number\": \"1232312312321313\", \"expiry_date\": \"43213\"}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (50, 'SN-gav7raryz', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36', '{\"标签\":\"android\",\"是否为PC\":false,\"平台\":\"MacIntel\",\"类型\":\"chrome\",\"是否为iOS\":false,\"宽度\":492,\"高度\":667,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"small\",\"版本\":\"143.0.0.0\",\"是否为移动设备\":true,\"是否为安卓\":true}', 'to_amex', '跳转至登录页', '2026-01-21 00:36:16.445', '2026-01-21 00:29:12.460', '{}', '', '', '');
-INSERT INTO `user_session` (`id`, `session_id`, `user_ip`, `domain_url`, `user_agent`, `device_info`, `last_active_page`, `current_status`, `update_time`, `create_time`, `ext_info`, `create_by`, `update_by`, `remark`) VALUES (58, 'SN-km1qkoeyk', '127.0.0.1', 'localhost:8080', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '{\"标签\":\"ios\",\"是否为PC\":false,\"平台\":\"MacIntel\",\"类型\":\"safari\",\"是否为iOS\":true,\"宽度\":430,\"高度\":932,\"是否为迷你\":false,\"前缀\":\"webkit\",\"屏幕尺寸\":\"small\",\"版本\":\"604.1\",\"是否为移动设备\":true,\"是否为安卓\":false}', '验证码验证', '离开验证码验证', '2026-03-18 19:46:20.081', '2026-03-18 19:46:04.080', '{}', '', '', '');
 COMMIT;
 
 -- ----------------------------
