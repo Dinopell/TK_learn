@@ -117,9 +117,9 @@ services:
     volumes:
       - ./repo_source/springboot-app.jar:/app.jar
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-master?useSSL=false&serverTimezone=Asia/Shanghai&autoReconnect=true
-      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PWD}
-      - SPRING_REDIS_HOST=redis
+      - DB_HOST=jdbc:mysql://mysql:3306/tk-master?useSSL=false&serverTimezone=Asia/Shanghai&autoReconnect=true
+      - DB_PASSWORD=${MYSQL_PWD}
+      - REDIS_HOST=redis
     # 增加内存分配解决 OOM 问题
     command: >
       /bin/sh -c "
