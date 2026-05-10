@@ -116,6 +116,10 @@ services:
     # 显式映射端口，解决 docker ps 为空的问题
     ports:
       - "8099:8099"
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
     depends_on:
       mysql: { condition: service_healthy }
     volumes:
@@ -133,7 +137,7 @@ services:
         sleep 3;
       done;
       echo 'MySQL is Ready. Starting Java App on port 8099...';
-      java -jar /app.jar --server.port=8099
+      java -Xms512m -Xmx1024m -jar /app.jar --server.port=8099
       "
     restart: always
 
