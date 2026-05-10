@@ -87,6 +87,7 @@ http {
 
         # 接口转发：去掉 rewrite 保证路径透传
         location /prod-api/ {
+            rewrite ^/prod-api/(.*)$ /$1 break;
             proxy_pass http://backend:8099;
             proxy_set_header Host \$host;
             proxy_set_header X-Real-IP \$remote_addr;
