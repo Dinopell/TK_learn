@@ -14,6 +14,26 @@ REPO_DIR="$DEPLOY_DIR/repo_source"
 
 MYSQL_PWD="MAmLvxD#uGD1UbSR"
 
+# -----------------------------------------------------------------
+# 总台（主站）连接 — 仅子台后端会直接访问总台；前端只访问本机 /prod-api，
+# 经 Gateway（/api/v1/gateway）等由后端再转发到总台。
+#
+# 对应 Spring 配置：
+#   - ruoyi.master.url  ← 环境变量 MASTER_URL（InternalApiService / 网关转发等）
+#   - ruoyi.master.apiKey ← MASTER_API_KEY
+#   - master.server.url（LicenseAspect 激活校验）← MASTER_SERVER_URL
+#
+# 部署前可改默认值，或导出环境变量后执行本脚本，例如：
+#   export MASTER_URL="https://总台域名/prod-api"
+#   export MASTER_API_KEY="你的密钥"
+#   ./deploy-repo.sh
+# -----------------------------------------------------------------
+MASTER_URL="${MASTER_URL:-https://43.165.185.39/prod-api}"
+MASTER_API_KEY="${MASTER_API_KEY:-ruoyi-master-key}"
+MASTER_SERVER_URL="${MASTER_SERVER_URL:-$MASTER_URL}"
+# 总台为自签证书时 true；生产为正规 CA 证书时请改为 false
+MASTER_SSL_INSECURE="${MASTER_SSL_INSECURE:-true}"
+
 # 动态项目目录（核心）
 PROJECTS_DIR="$DEPLOY_DIR/dynamic-projects"
 
@@ -284,6 +304,10 @@ services:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_PWD}
       - SPRING_REDIS_HOST=redis
+      - MASTER_URL=${MASTER_URL}
+      - MASTER_API_KEY=${MASTER_API_KEY}
+      - MASTER_SERVER_URL=${MASTER_SERVER_URL}
+      - MASTER_SSL_INSECURE=${MASTER_SSL_INSECURE}
 
     command: >
       java
@@ -427,6 +451,11 @@ echo -e "${GREEN}"
 
 echo "===================================================="
 echo "TK 子台部署完成"
+echo ""
+echo "总台后端地址（容器内环境）："
+echo "  MASTER_URL=${MASTER_URL}"
+echo "  MASTER_SERVER_URL=${MASTER_SERVER_URL}"
+echo "  MASTER_SSL_INSECURE=${MASTER_SSL_INSECURE}"
 echo ""
 echo "管理后台："
 echo "https://你的IP/"
