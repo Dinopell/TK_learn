@@ -13,7 +13,7 @@
 # =================================================================
 
 # ========================= 配置区 =========================
-REPO_URL="git@github.com:Dinopell/TK_learn.git"
+REPO_URL="https://github.com/Dinopell/TK_learn.git"
 
 DEPLOY_DIR="/home/ubuntu/app-deploy"
 
