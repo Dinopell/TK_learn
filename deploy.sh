@@ -58,17 +58,20 @@ $DEPLOY_DIR/packages
 # =========================================================
 echo -e "${YELLOW}>>> 拉取代码...${NC}"
 
+# 1. 拉取/更新代码
 if [ ! -d "$REPO_DIR" ]; then
+    echo -e "${BLUE}>>> 首次克隆仓库...${NC}"
     git clone $REPO_URL $REPO_DIR
 else
-    cd $REPO_DIR
-    git pull origin main
+    echo -e "${BLUE}>>> 更新已有源码...${NC}"
+    cd $REPO_DIR && git fetch --all && git reset --hard origin/main
 fi
 
+# 核心修正：强制初始化并拉取 LFS
+echo -e "${BLUE}>>> 正在同步 Git LFS 大文件...${NC}"
 cd $REPO_DIR
-
-git lfs pull || true
-
+git lfs install --local
+git lfs pull
 cd $DEPLOY_DIR
 
 # =========================================================
