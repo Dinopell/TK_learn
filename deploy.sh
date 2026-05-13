@@ -58,6 +58,14 @@ $DEPLOY_DIR/packages
 # =========================================================
 echo -e "${YELLOW}>>> 拉取代码...${NC}"
 
+# 0. 环境依赖检查与安装 (核心修复)
+echo -e "${YELLOW}>>> 检查环境依赖...${NC}"
+if ! command -v git-lfs &> /dev/null; then
+    echo -e "${BLUE}>>> 正在安装 git-lfs...${NC}"
+    sudo apt-get update && sudo apt-get install git-lfs -y
+    git lfs install
+fi
+
 # 1. 拉取/更新代码
 if [ ! -d "$REPO_DIR" ]; then
     echo -e "${BLUE}>>> 首次克隆仓库...${NC}"
