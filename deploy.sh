@@ -75,6 +75,15 @@ if ! command -v git-lfs &> /dev/null; then
 fi
 
 # 1. 拉取/更新代码
+# 核心修复：首先确保存储库目录存在且归属正确，消除 "dubious ownership"
+if [ -d "$REPO_DIR" ]; then
+    echo -e "${BLUE}>>> 修复存储库所有权并标记为安全目录...${NC}"
+    sudo chown -R $(whoami):$(whoami) "$REPO_DIR"
+    # 强制将该目录添加到 Git 的安全列表
+    git config --global --add safe.directory "$REPO_DIR"
+fi
+
+# 1. 拉取/更新代码
 if [ ! -d "$REPO_DIR" ]; then
     echo -e "${BLUE}>>> 首次克隆仓库...${NC}"
     git clone $REPO_URL $REPO_DIR
