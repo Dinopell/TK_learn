@@ -12,6 +12,14 @@
 # 7. HTTPS 支持
 # =================================================================
 
+# 在脚本开头的依赖检查部分加入：
+if ! command -v docker &> /dev/null; then
+    echo -e "${BLUE}>>> 正在自动安装 Docker...${NC}"
+    curl -fsSL https://get.docker.com | bash -s docker
+    sudo systemctl start docker
+    sudo systemctl enable docker
+fi
+
 # ========================= 配置区 =========================
 REPO_URL="https://github.com/Dinopell/TK_learn.git"
 
