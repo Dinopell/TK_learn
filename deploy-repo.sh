@@ -68,13 +68,13 @@ sudo sysctl vm.overcommit_memory=1 || true
 # =========================================================
 echo -e "${YELLOW}>>> 初始化目录...${NC}"
 
-mkdir -p \
-$DEPLOY_DIR/html \
-$DEPLOY_DIR/conf/ssl \
-$DEPLOY_DIR/mysql_data \
-$DEPLOY_DIR/redis_data \
-$DEPLOY_DIR/init \
-$PROJECTS_DIR
+# 确保父目录存在
+mkdir -p "$DEPLOY_DIR"
+
+# 一次性创建子目录
+for sub_dir in html conf/ssl mysql_data redis_data init dynamic-projects; do
+    mkdir -p "$DEPLOY_DIR/$sub_dir"
+done
 
 # =========================================================
 # 2. 拉取代码 (HTTPS + Branch 逻辑)
