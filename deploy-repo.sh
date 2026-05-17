@@ -131,11 +131,10 @@ for f in $DEPLOY_DIR/init/*.sql; do
 done
 
 # =========================================================
-# 4. 生成 Nginx 配置 (修复变量解析错误版)
+# 4. 生成 Nginx 配置 (终极修复版：变量生命周期保护)
 # =========================================================
 echo -e "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
-# 注意：这里的 EOF 加了单引号 'EOF'，防止 Shell 解析内部的 $ 变量
 cat <<'EOF' > "$DEPLOY_DIR/conf/nginx.conf"
 user nginx;
 worker_processes auto;
@@ -152,13 +151,12 @@ http {
 
     server {
         listen 80;
-        # 这里的 $ 不再需要反斜杠，因为 'EOF' 锁死了 Shell 解析
         return 301 https://$host$request_uri;
     }
 
     server {
         listen 443 ssl;
-        http2 on; # 修复日志中的 http2 弃用警告
+        http2 on;
         ssl_certificate /etc/nginx/ssl/server.crt;
         ssl_certificate_key /etc/nginx/ssl/server.key;
 
@@ -180,13 +178,22 @@ http {
             proxy_read_timeout 60s;
         }
 
+        # --- 核心修复：动态项目逻辑 ---
         location ~ ^/([^/]+)(/.*)?$ {
-            if ($1 ~* ^(prod-api|favicon\.ico|static)) {
+            # 1. 立即将 location 匹配到的 $1 转存到自定义变量 $project_name
+            # 这样后面的 if 语句再怎么匹配，也不会影响 $project_name 的值
+            set $project_name $1;
+
+            # 2. 排除掉不需要动态映射的路径
+            if ($project_name ~* ^(prod-api|favicon\.ico|static)) {
                 break;
             }
+
             root /dynamic-projects;
             index index.html;
-            try_files $uri $uri/ /$1/index.html;
+
+            # 3. 使用转存后的变量 $project_name，永远不会丢失
+            try_files $uri $uri/ /$project_name/index.html;
         }
     }
 }
