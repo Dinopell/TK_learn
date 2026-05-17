@@ -131,11 +131,12 @@ for f in $DEPLOY_DIR/init/*.sql; do
 done
 
 # =========================================================
-# 4. 生成 Nginx 配置
+# 4. 生成 Nginx 配置 (修复变量解析错误版)
 # =========================================================
 echo -e "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
-cat <<EOF > $DEPLOY_DIR/conf/nginx.conf
+# 注意：这里的 EOF 加了单引号 'EOF'，防止 Shell 解析内部的 $ 变量
+cat <<'EOF' > "$DEPLOY_DIR/conf/nginx.conf"
 user nginx;
 worker_processes auto;
 
@@ -151,43 +152,41 @@ http {
 
     server {
         listen 80;
+        # 这里的 $ 不再需要反斜杠，因为 'EOF' 锁死了 Shell 解析
         return 301 https://$host$request_uri;
     }
 
     server {
-        listen 443 ssl http2;
+        listen 443 ssl;
+        http2 on; # 修复日志中的 http2 弃用警告
         ssl_certificate /etc/nginx/ssl/server.crt;
         ssl_certificate_key /etc/nginx/ssl/server.key;
 
         root /usr/share/nginx/html;
         index index.html;
 
-        # 管理后台
         location / {
-            try_files \$uri \$uri/ /index.html;
+            try_files $uri $uri/ /index.html;
         }
 
-        # SpringBoot API 代理
         location /prod-api/ {
             proxy_pass http://backend:8080/;
             proxy_http_version 1.1;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
             proxy_connect_timeout 60s;
             proxy_read_timeout 60s;
         }
 
-        # 动态项目匹配规则 (SPA 支持)
         location ~ ^/([^/]+)(/.*)?$ {
-            # 排除 API 和静态 favicon
-            if (\$1 ~* ^(prod-api|favicon\.ico|static)) {
+            if ($1 ~* ^(prod-api|favicon\.ico|static)) {
                 break;
             }
             root /dynamic-projects;
             index index.html;
-            try_files \$uri \$uri/ /\$1/index.html;
+            try_files $uri $uri/ /$1/index.html;
         }
     }
 }
