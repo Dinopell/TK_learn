@@ -72,7 +72,7 @@ echo -e "${YELLOW}>>> 初始化目录...${NC}"
 mkdir -p \
 $DEPLOY_DIR/html \
 $DEPLOY_DIR/conf/ssl \
-$DEPLOY_DIR/conf/conf.d \          # 新增 conf.d 目录
+$DEPLOY_DIR/conf/conf.d \
 $DEPLOY_DIR/mysql_data \
 $DEPLOY_DIR/redis_data \
 $DEPLOY_DIR/init \
