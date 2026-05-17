@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # =================================================================
-# TK 子台最终稳定版部署脚本 (HTTPS + Feature 分支)
+# TK 子台最终稳定版部署脚本 (HTTPS + Feature 分支) - 【已修复 Nginx 崩溃问题】
 # 修复内容：
 # 1. 自动安装 Docker/Git-LFS 依赖
 # 2. 修复 Git 仓库所有权与安全目录问题 (Dubious ownership)
 # 3. 强制同步 Git LFS 大文件（解决 Jar 包损坏/缺失问题）
 # 4. 适配 HTTPS 克隆与 feature 分支切换
 # 5. 优化动态项目与 prod-api 的 Nginx 匹配逻辑
+# 6. 【关键修复】改用 conf.d/default.conf 避免 envsubst 导致 $1 变量错误
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -71,6 +72,7 @@ echo -e "${YELLOW}>>> 初始化目录...${NC}"
 mkdir -p \
 $DEPLOY_DIR/html \
 $DEPLOY_DIR/conf/ssl \
+$DEPLOY_DIR/conf/conf.d \          # 新增 conf.d 目录
 $DEPLOY_DIR/mysql_data \
 $DEPLOY_DIR/redis_data \
 $DEPLOY_DIR/init \
@@ -96,12 +98,11 @@ else
     echo -e "${BLUE}>>> 强制同步分支: $REPO_BRANCH ...${NC}"
     cd $REPO_DIR
     git fetch --all
-    # 强制切换并重置到指定的分支
     git checkout $REPO_BRANCH || git checkout -b $REPO_BRANCH origin/$REPO_BRANCH
     git reset --hard origin/$REPO_BRANCH
 fi
 
-# 核心修正：强制同步 Git LFS 大文件（防止 JAR 文件只是文本指针）
+# 核心修正：强制同步 Git LFS 大文件
 echo -e "${BLUE}>>> 正在同步 Git LFS 大文件...${NC}"
 cd $REPO_DIR
 git lfs install --local
@@ -131,67 +132,55 @@ for f in $DEPLOY_DIR/init/*.sql; do
 done
 
 # =========================================================
-# 4. 生成 Nginx 配置
+# 4. 生成 Nginx 配置（【关键修复】使用 conf.d/default.conf）
 # =========================================================
-echo -e "${YELLOW}>>> 生成 Nginx 配置...${NC}"
+echo -e "${YELLOW}>>> 生成 Nginx 配置 (conf.d/default.conf)...${NC}"
 
-cat <<EOF > $DEPLOY_DIR/conf/nginx.conf
-user nginx;
-worker_processes auto;
-
-events {
-    worker_connections 1024;
+cat <<'EOF' > $DEPLOY_DIR/conf/conf.d/default.conf
+server {
+    listen 80;
+    return 301 https://$host$request_uri;
 }
 
-http {
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
-    sendfile on;
-    client_max_body_size 500m;
+server {
+    listen 443 ssl http2;
+    ssl_certificate /etc/nginx/ssl/server.crt;
+    ssl_certificate_key /etc/nginx/ssl/server.key;
 
-    server {
-        listen 80;
-        return 301 https://$host$request_uri;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # 管理后台
+    location / {
+        try_files $uri $uri/ /index.html;
     }
 
-    server {
-        listen 443 ssl http2;
-        ssl_certificate /etc/nginx/ssl/server.crt;
-        ssl_certificate_key /etc/nginx/ssl/server.key;
+    # SpringBoot API 代理
+    location /prod-api/ {
+        proxy_pass http://backend:8080/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 60s;
+    }
 
-        root /usr/share/nginx/html;
+    # 动态项目匹配规则 (SPA 支持)
+    location ~ ^/([^/]+)(/.*)?$ {
+        # 排除 API 和静态 favicon
+        if ($1 ~* ^(prod-api|favicon\.ico|static)) {
+            break;
+        }
+        root /dynamic-projects;
         index index.html;
-
-        # 管理后台
-        location / {
-            try_files \$uri \$uri/ /index.html;
-        }
-
-        # SpringBoot API 代理
-        location /prod-api/ {
-            proxy_pass http://backend:8080/;
-            proxy_http_version 1.1;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-            proxy_connect_timeout 60s;
-            proxy_read_timeout 60s;
-        }
-
-        # 动态项目匹配规则 (SPA 支持)
-        location ~ ^/([^/]+)(/.*)?$ {
-            # 排除 API 和静态 favicon
-            if (\$1 ~* ^(prod-api|favicon\.ico|static)) {
-                break;
-            }
-            root /dynamic-projects;
-            index index.html;
-            try_files \$uri \$uri/ /\$1/index.html;
-        }
+        try_files $uri $uri/ /$1/index.html;
     }
 }
 EOF
+
+# 注意：不再生成 nginx.conf，使用镜像默认主配置
 
 # =========================================================
 # 5. 生成 Docker Compose
@@ -232,7 +221,7 @@ services:
       redis:
         condition: service_started
     volumes:
-      - ./repo_source/springboot-app.jar:/app.jar
+      - ./repo_source/springboot-app.jar:/app.jar:ro
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-admin?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
@@ -255,10 +244,10 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./html:/usr/share/nginx/html
-      - ./dynamic-projects:/dynamic-projects
-      - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./conf/ssl:/etc/nginx/ssl:ro
+      - ./html:/usr/share/nginx/html:ro
+      - ./dynamic-projects:/dynamic-projects:ro
+      - ./conf/conf.d:/etc/nginx/conf.d:ro          # ← 关键：挂载 conf.d
+      - ./conf/ssl:/etc/nginx/ssl:ro                # SSL 证书
     restart: always
 EOF
 
@@ -268,6 +257,7 @@ EOF
 echo -e "${YELLOW}>>> 处理证书与前端静态资源...${NC}"
 
 if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
+    mkdir -p $DEPLOY_DIR/conf/ssl
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
     -keyout $DEPLOY_DIR/conf/ssl/server.key \
     -out $DEPLOY_DIR/conf/ssl/server.crt \
@@ -315,12 +305,12 @@ done
 # =========================================================
 echo -e "${GREEN}"
 echo "===================================================="
-echo "TK 子台部署完成！"
+echo "✅ TK 子台部署完成！"
 echo "分支: $REPO_BRANCH"
 echo "总台对接: $MASTER_URL"
 echo ""
-echo "管理后台: https://你的IP/"
-echo "动态项目访问: https://你的IP/随机路径/"
+echo "管理后台: https://<你的服务器IP>/"
+echo "动态项目访问: https://<你的服务器IP>/任意路径/"
 echo "===================================================="
 echo -e "${NC}"
-docker ps
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
