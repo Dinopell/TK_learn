@@ -341,24 +341,38 @@ echo -e "${YELLOW}>>> 处理证书与前端静态资源...${NC}"
 patch_admin_dist_for_entry() {
     local dir="$1"
     local base="/${ADMIN_ENTRY}"
-    find "$dir" -type f \( -name '*.html' -o -name '*.js' -o -name '*.css' -o -name '*.json' \) -print0 | while IFS= read -r -d '' f; do
+    local base_slash="${base}/"
+
+    # 1) index.html：在任意 webpack 脚本之前注入 publicPath（修复懒加载 chunk 仍请求 /static/js/）
+    if [ -f "$dir/index.html" ] && ! grep -q '__webpack_public_path__' "$dir/index.html"; then
+        sed -i "s|<head>|<head><script>__webpack_public_path__='${base_slash}';</script>|" "$dir/index.html"
+    fi
+
+    # 2) 静态资源引用（html/css）
+    find "$dir" -type f \( -name '*.html' -o -name '*.css' \) -print0 | while IFS= read -r -d '' f; do
         sed -i \
-            -e "s|\"/static/|\"${base}/static/|g" \
-            -e "s|'/static/|'${base}/static/|g" \
             -e "s|href=/static/|href=${base}/static/|g" \
             -e "s|src=/static/|src=${base}/static/|g" \
-            -e "s|\"/assets/|\"${base}/assets/|g" \
-            -e "s|'/assets/|'${base}/assets/|g" \
             -e "s|href=/assets/|href=${base}/assets/|g" \
             -e "s|src=/assets/|src=${base}/assets/|g" \
             -e "s|url(/static/|url(${base}/static/|g" \
             -e "s|url(/assets/|url(${base}/assets/|g" \
+            -e "s|\"/static/|\"${base}/static/|g" \
+            -e "s|'/static/|'${base}/static/|g" \
+            -e "s|\"/assets/|\"${base}/assets/|g" \
+            -e "s|'/assets/|'${base}/assets/|g" \
             "$f"
     done
-    find "$dir/static/js" -name '*.js' -print0 2>/dev/null | while IFS= read -r -d '' f; do
+
+    # 3) JS：webpack runtime 的 publicPath（ChunkLoadError 根因：.p="/" 导致 chunk 走根路径 /static/js/）
+    find "$dir" -type f -name '*.js' -print0 | while IFS= read -r -d '' f; do
         sed -i \
-            -e "s|mode:\"history\",scrollBehavior|mode:\"history\",base:\"${base}/\",scrollBehavior|g" \
-            -e "s|mode:'history',scrollBehavior|mode:'history',base:'${base}/',scrollBehavior|g" \
+            -e "s|__webpack_require__\\.p=\"/\"|__webpack_require__.p=\"${base_slash}\"|g" \
+            -e "s|__webpack_require__\\.p='/'|__webpack_require__.p='${base_slash}'|g" \
+            -e "s|\\.p=\"/\"|.p=\"${base_slash}\"|g" \
+            -e "s|\\.p='/'|.p='${base_slash}'|g" \
+            -e "s|mode:\"history\",scrollBehavior|mode:\"history\",base:\"${base_slash}\",scrollBehavior|g" \
+            -e "s|mode:'history',scrollBehavior|mode:'history',base:'${base_slash}',scrollBehavior|g" \
             "$f" || true
     done
 }
