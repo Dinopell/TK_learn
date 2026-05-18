@@ -470,6 +470,19 @@ else
     patch_admin_dist_for_entry "$ADMIN_HTML_DIR"
 fi
 
+# 修补已部署小页面 index.html（Vite 默认 /index-xxx.js -> /项目名/index-xxx.js）
+patch_dynamic_project_index() {
+    local entry="$1"
+    local index="$PROJECTS_DIR/$entry/index.html"
+    [ -f "$index" ] || return 0
+    if grep -q "<base href=\"/$entry/\"" "$index" 2>/dev/null; then
+        return 0
+    fi
+    echo -e "${BLUE}>>> 修补小页面静态路径: /${entry}/${NC}"
+    sed -i "s|<head>|<head><base href=\"/$entry/\">|" "$index"
+    sed -i "s|src=\"/|src=\"/$entry/|g; s|href=\"/|href=\"/$entry/|g" "$index"
+}
+
 # =========================================================
 # 7. 启动服务与数据库导入
 # =========================================================
@@ -497,6 +510,14 @@ docker exec app-deploy-backend-1 sh -c '
   done
   ls -la /dynamic-projects/
 ' 2>/dev/null || echo -e "${YELLOW}>>> 后端尚未就绪，跳过迁移（可稍后手动 cp）${NC}"
+
+for _proj in "$PROJECTS_DIR"/*; do
+    [ -d "$_proj" ] || continue
+    _name=$(basename "$_proj")
+    [[ "$_name" == .* ]] && continue
+    patch_dynamic_project_index "$_name"
+done
+docker exec app-deploy-frontend-1 nginx -s reload 2>/dev/null || true
 
 echo -e "${YELLOW}>>> 校验 Nginx 配置...${NC}"
 sleep 3
