@@ -7,7 +7,9 @@
 # 2. 修复 Git 仓库所有权与安全目录问题 (Dubious ownership)
 # 3. 强制同步 Git LFS 大文件（解决 Jar 包损坏/缺失问题）
 # 4. 适配 HTTPS 克隆与 feature 分支切换
-# 5. 优化动态项目与 prod-api 的 Nginx 匹配逻辑
+# 5. 后端使用 DB_HOST/DB_PASSWORD（若依 Druid 不读 SPRING_DATASOURCE_*）
+# 6. Nginx 修复首页 500（/index.html 内部跳转不再误入动态项目 location）
+# 7. 部署后自动 nginx -t 与基础健康检查
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -108,6 +110,16 @@ git lfs install --local
 git lfs pull
 cd $DEPLOY_DIR
 
+JAR_FILE="$REPO_DIR/springboot-app.jar"
+if [ ! -f "$JAR_FILE" ]; then
+    echo -e "${RED}>>> 缺少 $JAR_FILE，请确认仓库已包含该文件且 git lfs pull 成功${NC}"
+    exit 1
+fi
+if ! file "$JAR_FILE" | grep -qE 'Java archive|Zip archive'; then
+    echo -e "${RED}>>> springboot-app.jar 不是有效 JAR（可能仍是 LFS 指针），请执行: cd $REPO_DIR && git lfs pull${NC}"
+    exit 1
+fi
+
 # =========================================================
 # 3. SQL 初始化
 # =========================================================
@@ -131,7 +143,7 @@ for f in $DEPLOY_DIR/init/*.sql; do
 done
 
 # =========================================================
-# 4. 生成 Nginx 配置 (终极修复版：变量生命周期保护)
+# 4. 生成 Nginx 配置
 # =========================================================
 echo -e "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
@@ -163,11 +175,14 @@ http {
         root /usr/share/nginx/html;
         index index.html;
 
-        location / {
-            try_files $uri $uri/ /index.html;
+        # try_files 回退到 /index.html 为内部跳转，必须用 exact 命中主站静态根目录，
+        # 否则会被下方正则 location 当成「动态项目名 index.html」→ 500
+        location = /index.html {
+            root /usr/share/nginx/html;
+            internal;
         }
 
-        location /prod-api/ {
+        location ^~ /prod-api/ {
             proxy_pass http://backend:8080/;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
@@ -178,21 +193,26 @@ http {
             proxy_read_timeout 60s;
         }
 
-        # --- 核心修复：动态项目逻辑 ---
-        location ~ ^/([^/]+)(/.*)?$ {
-            # 1. 立即将 location 匹配到的 $1 转存到自定义变量 $project_name
-            # 这样后面的 if 语句再怎么匹配，也不会影响 $project_name 的值
+        # 主站前端（Vue 打包产物：/static、/assets 等）
+        location ^~ /static/ {
+            root /usr/share/nginx/html;
+            try_files $uri =404;
+        }
+
+        location ^~ /assets/ {
+            root /usr/share/nginx/html;
+            try_files $uri =404;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        # 动态子项目：须为 /项目名/...（至少两段路径），避免误匹配 /index.html
+        location ~ ^/([^/]+)/ {
             set $project_name $1;
-
-            # 2. 排除掉不需要动态映射的路径
-            if ($project_name ~* ^(prod-api|favicon\.ico|static)) {
-                break;
-            }
-
             root /dynamic-projects;
             index index.html;
-
-            # 3. 使用转存后的变量 $project_name，永远不会丢失
             try_files $uri $uri/ /$project_name/index.html;
         }
     }
@@ -291,6 +311,17 @@ if [ -f "$REPO_DIR/dist.zip" ]; then
         mv $DEPLOY_DIR/html/dist/* $DEPLOY_DIR/html/ 2>/dev/null || true
         rm -rf $DEPLOY_DIR/html/dist
     fi
+    if [ ! -f "$DEPLOY_DIR/html/index.html" ]; then
+        echo -e "${RED}>>> dist.zip 解压后未找到 html/index.html，请检查前端打包${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}>>> 前端静态资源已解压到 html/${NC}"
+else
+    echo -e "${YELLOW}>>> 警告: 未找到 $REPO_DIR/dist.zip，请确认 html/index.html 已存在${NC}"
+    if [ ! -f "$DEPLOY_DIR/html/index.html" ]; then
+        echo -e "${RED}>>> html/index.html 不存在，页面将无法正常访问${NC}"
+        exit 1
+    fi
 fi
 
 # =========================================================
@@ -305,7 +336,11 @@ chmod -R 755 $PROJECTS_DIR
 
 cd $DEPLOY_DIR
 docker compose down || true
-docker compose up -d
+docker compose up -d --force-recreate
+
+echo -e "${YELLOW}>>> 校验 Nginx 配置...${NC}"
+sleep 3
+docker exec app-deploy-frontend-1 nginx -t
 
 echo -e "${YELLOW}>>> 等待 MySQL 启动并导入 SQL...${NC}"
 sleep 20
@@ -321,7 +356,25 @@ for sql in $(ls $DEPLOY_DIR/init/*.sql | sort); do
 done
 
 # =========================================================
-# 8. 完成
+# 8. 健康检查
+# =========================================================
+echo -e "${YELLOW}>>> 健康检查...${NC}"
+
+HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://127.0.0.1/ || echo "000")
+if [ "$HTTP_CODE" = "200" ]; then
+    echo -e "${GREEN}>>> 首页 HTTPS 返回 200 OK${NC}"
+else
+    echo -e "${YELLOW}>>> 首页 HTTPS 返回 $HTTP_CODE（若刚启动可稍等后重试: curl -k -I https://127.0.0.1/）${NC}"
+fi
+
+if docker logs app-deploy-backend-1 2>&1 | tail -50 | grep -q "若依启动成功"; then
+    echo -e "${GREEN}>>> 后端若依已启动${NC}"
+else
+    echo -e "${YELLOW}>>> 后端可能仍在启动，查看日志: docker logs -f app-deploy-backend-1${NC}"
+fi
+
+# =========================================================
+# 9. 完成
 # =========================================================
 echo -e "${GREEN}"
 echo "===================================================="
@@ -329,8 +382,13 @@ echo "TK 子台部署完成！"
 echo "分支: $REPO_BRANCH"
 echo "总台对接: $MASTER_URL"
 echo ""
-echo "管理后台: https://你的IP/"
-echo "动态项目访问: https://你的IP/随机路径/"
+echo "管理后台: https://你的服务器IP/"
+echo "动态项目: https://你的服务器IP/项目名/"
+echo ""
+echo "常用命令:"
+echo "  docker ps"
+echo "  docker logs -f app-deploy-backend-1"
+echo "  docker logs -f app-deploy-frontend-1"
 echo "===================================================="
 echo -e "${NC}"
 docker ps
