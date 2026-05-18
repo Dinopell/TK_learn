@@ -254,11 +254,6 @@ http {
         }
 
         # 用户小页面：/项目名/ -> 宿主机 dynamic-projects/项目名/
-        # 静态资源须单独匹配：404 时不能回退 index.html，否则 .js 会以 text/html 返回（module script MIME 报错）
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)/(.+\.(js|mjs|css|map|json|woff2?|ttf|eot|otf|svg|png|jpe?g|gif|ico|webp))\$ {
-            root /dynamic-projects;
-            try_files \$uri =404;
-        }
         location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
             return 301 \$uri/;
         }
@@ -271,7 +266,6 @@ http {
         location @dynamic_project_spa {
             rewrite ^/([a-zA-Z0-9_-]+)(/.*)?\$ /\$1/index.html break;
             root /dynamic-projects;
-            default_type text/html;
         }
     }
 }
@@ -476,51 +470,6 @@ else
     patch_admin_dist_for_entry "$ADMIN_HTML_DIR"
 fi
 
-# 修补已部署小页面 index.html（Vite 默认 /index-xxx.js -> /项目名/index-xxx.js）
-patch_dynamic_project_index() {
-    local entry="$1"
-    local index="$PROJECTS_DIR/$entry/index.html"
-    [ -f "$index" ] || return 0
-    echo -e "${BLUE}>>> 修补小页面静态路径: /${entry}/${NC}"
-    python3 - "$entry" "$index" <<'PY' 2>/dev/null || patch_dynamic_project_index_sed "$entry" "$index"
-import re, sys
-entry, path = sys.argv[1], sys.argv[2]
-html = open(path, encoding='utf-8').read()
-prefix = '/' + entry.strip('/')
-html = re.sub(r'<base\s+href="[^"]*"\s*/?>', '', html, flags=re.I)
-html = re.sub(r'(src|href)=(["\'])/(?!' + re.escape(entry) + r'/)', r'\1=\2' + prefix + '/', html)
-dup = prefix + prefix + '/'
-while dup in html:
-    html = html.replace(dup, prefix + '/')
-sub = re.search(r'(?:src|href)=["\']' + re.escape(prefix) + r'/([^/"\']+)/', html, re.I)
-base = prefix + ('/' + sub.group(1) + '/' if sub and sub.group(1) not in ('assets', 'static') else '/')
-html = re.sub(r'<head>', '<head><base href="' + base + '">', html, count=1, flags=re.I)
-open(path, 'w', encoding='utf-8').write(html)
-print('patched', path, 'base=', base)
-PY
-}
-
-patch_dynamic_project_index_sed() {
-    local entry="$1"
-    local index="$2"
-    sed -i 's|<base href="[^"]*">||Ig' "$index"
-    while grep -q "/${entry}/${entry}/" "$index" 2>/dev/null; do
-        sed -i "s|/${entry}/${entry}/|/${entry}/|g" "$index"
-    done
-    sed -i "s|\\(src\\|href\\)=\"/\\(?!${entry}/\\)|\\1=\"/${entry}/|g" "$index" 2>/dev/null || \
-        sed -i "s|src=\"/|src=\"/${entry}/|g; s|href=\"/|href=\"/${entry}/|g" "$index"
-    while grep -q "/${entry}/${entry}/" "$index" 2>/dev/null; do
-        sed -i "s|/${entry}/${entry}/|/${entry}/|g" "$index"
-    done
-    local sub
-    sub=$(grep -oE "(src|href)=\"/${entry}/[^/]+/" "$index" | head -1 | sed "s|.*\"/${entry}/||;s|/.*||")
-    local base="/${entry}/"
-    if [ -n "$sub" ] && [ "$sub" != "assets" ] && [ "$sub" != "static" ]; then
-        base="/${entry}/${sub}/"
-    fi
-    sed -i "s|<head>|<head><base href=\"${base}\">|" "$index"
-}
-
 # =========================================================
 # 7. 启动服务与数据库导入
 # =========================================================
@@ -548,14 +497,6 @@ docker exec app-deploy-backend-1 sh -c '
   done
   ls -la /dynamic-projects/
 ' 2>/dev/null || echo -e "${YELLOW}>>> 后端尚未就绪，跳过迁移（可稍后手动 cp）${NC}"
-
-for _proj in "$PROJECTS_DIR"/*; do
-    [ -d "$_proj" ] || continue
-    _name=$(basename "$_proj")
-    [[ "$_name" == .* ]] && continue
-    patch_dynamic_project_index "$_name"
-done
-docker exec app-deploy-frontend-1 nginx -s reload 2>/dev/null || true
 
 echo -e "${YELLOW}>>> 校验 Nginx 配置...${NC}"
 sleep 3
