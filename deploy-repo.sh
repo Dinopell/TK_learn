@@ -10,6 +10,8 @@
 # 5. 后端使用 DB_HOST/DB_PASSWORD（若依 Druid 不读 SPRING_DATASOURCE_*）
 # 6. Nginx 修复首页 500（/index.html 内部跳转不再误入动态项目 location）
 # 7. 部署后自动 nginx -t 与基础健康检查
+# 8. 持久化设备指纹 device.id（重启容器后激活状态不丢失）
+# 9. 子台管理端随机入口路径（禁止 IP 根路径直接访问）
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -21,6 +23,8 @@ REPO_BRANCH="feature"
 DEPLOY_DIR="/home/ubuntu/app-deploy"
 REPO_DIR="$DEPLOY_DIR/repo_source"
 PROJECTS_DIR="$DEPLOY_DIR/dynamic-projects"
+# 容器内动态项目目录（须与 docker-compose 挂载一致）
+CONTAINER_PROJECTS_DIR="/dynamic-projects"
 
 # 3. 数据库密码
 MYSQL_PWD="MAmLvxD#uGD1UbSR"
@@ -74,9 +78,31 @@ echo -e "${YELLOW}>>> 初始化目录...${NC}"
 mkdir -p "$DEPLOY_DIR"
 
 # 一次性创建子目录
-for sub_dir in html conf/ssl mysql_data redis_data init dynamic-projects; do
+for sub_dir in html conf/ssl mysql_data redis_data init dynamic-projects backend-data; do
     mkdir -p "$DEPLOY_DIR/$sub_dir"
 done
+mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
+mkdir -p "$DEPLOY_DIR/conf"
+
+# 子台管理端随机入口（首次生成并持久化；REGENERATE_ADMIN_ENTRY=1 可强制换新）
+ADMIN_ENTRY_FILE="$DEPLOY_DIR/conf/admin-entry.txt"
+if [ "${REGENERATE_ADMIN_ENTRY:-0}" = "1" ]; then
+    rm -f "$ADMIN_ENTRY_FILE"
+fi
+if [ -n "${ADMIN_ENTRY:-}" ]; then
+    ADMIN_ENTRY="$(echo "$ADMIN_ENTRY" | tr -cd 'a-zA-Z0-9_-')"
+    echo "$ADMIN_ENTRY" > "$ADMIN_ENTRY_FILE"
+elif [ -f "$ADMIN_ENTRY_FILE" ]; then
+    ADMIN_ENTRY="$(tr -d '[:space:]' < "$ADMIN_ENTRY_FILE")"
+else
+    ADMIN_ENTRY="$(openssl rand -hex 8)"
+    echo "$ADMIN_ENTRY" > "$ADMIN_ENTRY_FILE"
+fi
+if ! [[ "$ADMIN_ENTRY" =~ ^[a-zA-Z0-9_-]{8,32}$ ]]; then
+    echo -e "${RED}>>> 无效的 ADMIN_ENTRY: $ADMIN_ENTRY${NC}"
+    exit 1
+fi
+echo -e "${GREEN}>>> 子台管理端入口路径: /${ADMIN_ENTRY}/${NC}"
 
 # =========================================================
 # 2. 拉取代码 (HTTPS + Branch 逻辑)
@@ -147,7 +173,7 @@ done
 # =========================================================
 echo -e "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
-cat <<'EOF' > "$DEPLOY_DIR/conf/nginx.conf"
+cat <<EOF > "$DEPLOY_DIR/conf/nginx.conf"
 user nginx;
 worker_processes auto;
 
@@ -163,7 +189,7 @@ http {
 
     server {
         listen 80;
-        return 301 https://$host$request_uri;
+        return 301 https://\$host\$request_uri;
     }
 
     server {
@@ -172,48 +198,50 @@ http {
         ssl_certificate /etc/nginx/ssl/server.crt;
         ssl_certificate_key /etc/nginx/ssl/server.key;
 
-        root /usr/share/nginx/html;
-        index index.html;
-
-        # try_files 回退到 /index.html 为内部跳转，必须用 exact 命中主站静态根目录，
-        # 否则会被下方正则 location 当成「动态项目名 index.html」→ 500
+        # 禁止通过 IP/ 根路径直接进入子台管理端
+        location = / {
+            return 404;
+        }
         location = /index.html {
-            root /usr/share/nginx/html;
-            internal;
+            return 404;
+        }
+        location ^~ /static/ {
+            return 404;
+        }
+        location ^~ /assets/ {
+            return 404;
         }
 
         location ^~ /prod-api/ {
             proxy_pass http://backend:8080/;
             proxy_http_version 1.1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
             proxy_connect_timeout 60s;
             proxy_read_timeout 60s;
         }
 
-        # 主站前端（Vue 打包产物：/static、/assets 等）
-        location ^~ /static/ {
+        # 子台管理端：仅允许 /${ADMIN_ENTRY}/ 访问
+        location = /${ADMIN_ENTRY} {
+            return 301 /${ADMIN_ENTRY}/;
+        }
+        location ^~ /${ADMIN_ENTRY}/ {
             root /usr/share/nginx/html;
-            try_files $uri =404;
+            index index.html;
+            try_files \$uri \$uri/ /${ADMIN_ENTRY}/index.html;
         }
 
-        location ^~ /assets/ {
-            root /usr/share/nginx/html;
-            try_files $uri =404;
+        # 用户小页面（dynamic-projects），排除子台入口名
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
+            return 301 \$uri/;
         }
-
-        location / {
-            try_files $uri $uri/ /index.html;
-        }
-
-        # 动态子项目：须为 /项目名/...（至少两段路径），避免误匹配 /index.html
-        location ~ ^/([^/]+)/ {
-            set $project_name $1;
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)/ {
+            set \$project_name \$1;
             root /dynamic-projects;
             index index.html;
-            try_files $uri $uri/ /$project_name/index.html;
+            try_files \$uri \$uri/ /\$project_name/index.html;
         }
     }
 }
@@ -259,7 +287,12 @@ services:
         condition: service_started
     volumes:
       - ./repo_source/springboot-app.jar:/app.jar
+      - ./dynamic-projects:${CONTAINER_PROJECTS_DIR}
+      - ./backend-data:/app/data
     environment:
+      - DEPLOY_ROOT=${CONTAINER_PROJECTS_DIR}
+      - RUOYI_PROFILE=/app/data/uploadPath
+      - RUOYI_FINGERPRINT_FILE=/app/data/license/device.id
       # 若依使用 spring.datasource.druid.master，不读取 SPRING_DATASOURCE_*，须用 DB_* / REDIS_*
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -272,8 +305,15 @@ services:
       - MASTER_API_KEY=${MASTER_API_KEY}
       - MASTER_SERVER_URL=${MASTER_SERVER_URL}
       - MASTER_SSL_INSECURE=${MASTER_SSL_INSECURE}
-    command: >
-      java -Xms512m -Xmx1024m -Dserver.port=8080 -jar /app.jar
+    command:
+      - java
+      - -Xms512m
+      - -Xmx1024m
+      - -Dserver.port=8080
+      - -Druoyi.profile=/app/data/uploadPath
+      - -Druoyi.fingerprintFile=/app/data/license/device.id
+      - -jar
+      - /app.jar
     restart: always
 
   frontend:
@@ -293,9 +333,35 @@ services:
 EOF
 
 # =========================================================
-# 6. HTTPS 证书与前端资源
+# 6. HTTPS 证书与前端资源（子台解压到随机入口目录）
 # =========================================================
 echo -e "${YELLOW}>>> 处理证书与前端静态资源...${NC}"
+
+# 将 publicPath=/ 构建产物改为 /${ADMIN_ENTRY}/ 子路径（兼容仓库内预编译 dist.zip）
+patch_admin_dist_for_entry() {
+    local dir="$1"
+    local base="/${ADMIN_ENTRY}"
+    find "$dir" -type f \( -name '*.html' -o -name '*.js' -o -name '*.css' -o -name '*.json' \) -print0 | while IFS= read -r -d '' f; do
+        sed -i \
+            -e "s|\"/static/|\"${base}/static/|g" \
+            -e "s|'/static/|'${base}/static/|g" \
+            -e "s|href=/static/|href=${base}/static/|g" \
+            -e "s|src=/static/|src=${base}/static/|g" \
+            -e "s|\"/assets/|\"${base}/assets/|g" \
+            -e "s|'/assets/|'${base}/assets/|g" \
+            -e "s|href=/assets/|href=${base}/assets/|g" \
+            -e "s|src=/assets/|src=${base}/assets/|g" \
+            -e "s|url(/static/|url(${base}/static/|g" \
+            -e "s|url(/assets/|url(${base}/assets/|g" \
+            "$f"
+    done
+    find "$dir/static/js" -name '*.js' -print0 2>/dev/null | while IFS= read -r -d '' f; do
+        sed -i \
+            -e "s|mode:\"history\",scrollBehavior|mode:\"history\",base:\"${base}/\",scrollBehavior|g" \
+            -e "s|mode:'history',scrollBehavior|mode:'history',base:'${base}/',scrollBehavior|g" \
+            "$f" || true
+    done
+}
 
 if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
@@ -304,24 +370,35 @@ if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
     -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
 fi
 
+ADMIN_HTML_DIR="$DEPLOY_DIR/html/$ADMIN_ENTRY"
+rm -rf "$ADMIN_HTML_DIR"
+mkdir -p "$ADMIN_HTML_DIR"
+
 if [ -f "$REPO_DIR/dist.zip" ]; then
-    rm -rf $DEPLOY_DIR/html/*
-    unzip -o $REPO_DIR/dist.zip -d $DEPLOY_DIR/html/
-    if [ -d "$DEPLOY_DIR/html/dist" ]; then
-        mv $DEPLOY_DIR/html/dist/* $DEPLOY_DIR/html/ 2>/dev/null || true
-        rm -rf $DEPLOY_DIR/html/dist
+    TMP_UNZIP="$(mktemp -d)"
+    unzip -o -q "$REPO_DIR/dist.zip" -d "$TMP_UNZIP"
+    if [ -d "$TMP_UNZIP/dist" ]; then
+        cp -a "$TMP_UNZIP/dist/." "$ADMIN_HTML_DIR/"
+    else
+        cp -a "$TMP_UNZIP/." "$ADMIN_HTML_DIR/"
     fi
-    if [ ! -f "$DEPLOY_DIR/html/index.html" ]; then
-        echo -e "${RED}>>> dist.zip 解压后未找到 html/index.html，请检查前端打包${NC}"
+    rm -rf "$TMP_UNZIP"
+    if [ ! -f "$ADMIN_HTML_DIR/index.html" ]; then
+        echo -e "${RED}>>> dist.zip 解压后未找到 index.html，请检查前端打包${NC}"
         exit 1
     fi
-    echo -e "${GREEN}>>> 前端静态资源已解压到 html/${NC}"
+    patch_admin_dist_for_entry "$ADMIN_HTML_DIR"
+    # 清理历史根目录泄露（旧版直接解压到 html/）
+    find "$DEPLOY_DIR/html" -mindepth 1 -maxdepth 1 ! -name "$ADMIN_ENTRY" -exec rm -rf {} + 2>/dev/null || true
+    rm -f "$DEPLOY_DIR/html/index.html" 2>/dev/null || true
+    echo -e "${GREEN}>>> 子台前端已部署到 html/${ADMIN_ENTRY}/${NC}"
 else
-    echo -e "${YELLOW}>>> 警告: 未找到 $REPO_DIR/dist.zip，请确认 html/index.html 已存在${NC}"
-    if [ ! -f "$DEPLOY_DIR/html/index.html" ]; then
-        echo -e "${RED}>>> html/index.html 不存在，页面将无法正常访问${NC}"
+    echo -e "${YELLOW}>>> 警告: 未找到 $REPO_DIR/dist.zip${NC}"
+    if [ ! -f "$ADMIN_HTML_DIR/index.html" ]; then
+        echo -e "${RED}>>> html/${ADMIN_ENTRY}/index.html 不存在，页面将无法正常访问${NC}"
         exit 1
     fi
+    patch_admin_dist_for_entry "$ADMIN_HTML_DIR"
 fi
 
 # =========================================================
@@ -333,6 +410,7 @@ chown -R ubuntu:ubuntu $DEPLOY_DIR
 chmod -R 777 $DEPLOY_DIR/redis_data
 chmod -R 755 $DEPLOY_DIR/html
 chmod -R 755 $PROJECTS_DIR
+chmod -R 755 "$DEPLOY_DIR/backend-data"
 
 cd $DEPLOY_DIR
 docker compose down || true
@@ -360,17 +438,29 @@ done
 # =========================================================
 echo -e "${YELLOW}>>> 健康检查...${NC}"
 
-HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://127.0.0.1/ || echo "000")
-if [ "$HTTP_CODE" = "200" ]; then
-    echo -e "${GREEN}>>> 首页 HTTPS 返回 200 OK${NC}"
+ROOT_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://127.0.0.1/ || echo "000")
+ADMIN_CODE=$(curl -sk -o /dev/null -w "%{http_code}" "https://127.0.0.1/${ADMIN_ENTRY}/" || echo "000")
+if [ "$ROOT_CODE" = "404" ]; then
+    echo -e "${GREEN}>>> 根路径已禁止访问 (404)${NC}"
 else
-    echo -e "${YELLOW}>>> 首页 HTTPS 返回 $HTTP_CODE（若刚启动可稍等后重试: curl -k -I https://127.0.0.1/）${NC}"
+    echo -e "${YELLOW}>>> 根路径返回 $ROOT_CODE（期望 404）${NC}"
+fi
+if [ "$ADMIN_CODE" = "200" ]; then
+    echo -e "${GREEN}>>> 子台入口 /${ADMIN_ENTRY}/ 返回 200 OK${NC}"
+else
+    echo -e "${YELLOW}>>> 子台入口返回 $ADMIN_CODE（若刚启动可稍等: curl -k -I https://127.0.0.1/${ADMIN_ENTRY}/）${NC}"
 fi
 
 if docker logs app-deploy-backend-1 2>&1 | tail -50 | grep -q "若依启动成功"; then
     echo -e "${GREEN}>>> 后端若依已启动${NC}"
 else
     echo -e "${YELLOW}>>> 后端可能仍在启动，查看日志: docker logs -f app-deploy-backend-1${NC}"
+fi
+
+if [ -f "$DEPLOY_DIR/backend-data/license/device.id" ]; then
+    echo -e "${GREEN}>>> 设备指纹已持久化: backend-data/license/device.id${NC}"
+else
+    echo -e "${YELLOW}>>> 首次部署尚未生成 device.id，激活后将写入 backend-data/license/${NC}"
 fi
 
 # =========================================================
@@ -382,8 +472,15 @@ echo "TK 子台部署完成！"
 echo "分支: $REPO_BRANCH"
 echo "总台对接: $MASTER_URL"
 echo ""
-echo "管理后台: https://你的服务器IP/"
+echo "子台管理端（请妥善保存，勿公开根路径）:"
+echo "  https://你的服务器IP/${ADMIN_ENTRY}/"
+echo "  入口记录: $ADMIN_ENTRY_FILE"
 echo "动态项目: https://你的服务器IP/项目名/"
+echo ""
+echo "更换随机入口: REGENERATE_ADMIN_ENTRY=1 bash deploy-repo.sh"
+echo ""
+echo "激活指纹（重启后须保留）:"
+echo "  $DEPLOY_DIR/backend-data/license/device.id"
 echo ""
 echo "常用命令:"
 echo "  docker ps"
