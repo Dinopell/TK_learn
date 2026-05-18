@@ -343,38 +343,58 @@ patch_admin_dist_for_entry() {
     local base="/${ADMIN_ENTRY}"
     local base_slash="${base}/"
 
-    # 1) index.html：在任意 webpack 脚本之前注入 publicPath（修复懒加载 chunk 仍请求 /static/js/）
-    if [ -f "$dir/index.html" ] && ! grep -q '__webpack_public_path__' "$dir/index.html"; then
-        sed -i "s|<head>|<head><script>__webpack_public_path__='${base_slash}';</script>|" "$dir/index.html"
-    fi
-
-    # 2) 静态资源引用（html/css）
-    find "$dir" -type f \( -name '*.html' -o -name '*.css' \) -print0 | while IFS= read -r -d '' f; do
+    # 1) index.html：最先注入 publicPath（修复懒加载 JS/CSS chunk 仍走 /static/...）
+    if [ -f "$dir/index.html" ]; then
+        if ! grep -q '__webpack_public_path__' "$dir/index.html"; then
+            sed -i "s|<head>|<head><script>__webpack_public_path__='${base_slash}';</script>|" "$dir/index.html"
+        fi
         sed -i \
             -e "s|href=/static/|href=${base}/static/|g" \
             -e "s|src=/static/|src=${base}/static/|g" \
             -e "s|href=/assets/|href=${base}/assets/|g" \
             -e "s|src=/assets/|src=${base}/assets/|g" \
+            -e "s|\"/static/|\"${base}/static/|g" \
+            -e "s|'/static/|'${base}/static/|g" \
+            "$dir/index.html"
+    fi
+
+    # 2) 已编译 CSS 文件内的 url(/static/...)
+    find "$dir" -type f -name '*.css' -print0 | while IFS= read -r -d '' f; do
+        sed -i \
             -e "s|url(/static/|url(${base}/static/|g" \
             -e "s|url(/assets/|url(${base}/assets/|g" \
             -e "s|\"/static/|\"${base}/static/|g" \
             -e "s|'/static/|'${base}/static/|g" \
-            -e "s|\"/assets/|\"${base}/assets/|g" \
-            -e "s|'/assets/|'${base}/assets/|g" \
             "$f"
     done
 
-    # 3) JS：webpack runtime 的 publicPath（ChunkLoadError 根因：.p="/" 导致 chunk 走根路径 /static/js/）
+    # 3) JS：webpack publicPath + 硬编码的 /static/js/、/static/css/（CSS chunk 懒加载同因）
     find "$dir" -type f -name '*.js' -print0 | while IFS= read -r -d '' f; do
         sed -i \
             -e "s|__webpack_require__\\.p=\"/\"|__webpack_require__.p=\"${base_slash}\"|g" \
             -e "s|__webpack_require__\\.p='/'|__webpack_require__.p='${base_slash}'|g" \
             -e "s|\\.p=\"/\"|.p=\"${base_slash}\"|g" \
             -e "s|\\.p='/'|.p='${base_slash}'|g" \
+            -e "s|\\.p=\"/\",|.p=\"${base_slash}\",|g" \
+            -e "s|p:\"/\"|p:\"${base_slash}\"|g" \
+            -e "s|p:'/'|p:'${base_slash}'|g" \
+            -e "s|publicPath:\"/\"|publicPath:\"${base_slash}\"|g" \
+            -e "s|publicPath:'/'|publicPath:'${base_slash}'|g" \
+            -e "s|\"/static/|\"${base}/static/|g" \
+            -e "s|'/static/|'${base}/static/|g" \
+            -e "s|+\"/static/|+\"${base}/static/|g" \
+            -e "s|+'/static/'|+'${base}/static/'|g" \
             -e "s|mode:\"history\",scrollBehavior|mode:\"history\",base:\"${base_slash}\",scrollBehavior|g" \
             -e "s|mode:'history',scrollBehavior|mode:'history',base:'${base_slash}',scrollBehavior|g" \
             "$f" || true
     done
+
+    # 4) 校验：不应再出现根路径 /static/js|css（排除已带入口前缀）
+    if grep -rq '"/static/js/' "$dir" 2>/dev/null || grep -rq '"/static/css/' "$dir" 2>/dev/null; then
+        echo -e "${YELLOW}>>> 警告: 仍有文件引用根路径 /static/，建议按入口路径重新打包 dist.zip${NC}"
+        grep -rl '"/static/js/' "$dir" 2>/dev/null | head -3 || true
+        grep -rl '"/static/css/' "$dir" 2>/dev/null | head -3 || true
+    fi
 }
 
 if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
