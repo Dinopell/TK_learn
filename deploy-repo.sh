@@ -13,6 +13,7 @@
 # 8. 持久化设备指纹 device.id（重启容器后激活状态不丢失）
 # 9. 子台管理端随机入口路径（禁止 IP 根路径直接访问）
 # 10. /static、/assets 回退映射到子台目录（修复 publicPath=/ 时 CSS/JS chunk 404）
+# 11. 小页面持久化在宿主机 dynamic-projects（bind mount，docker restart 不丢失）
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -83,6 +84,9 @@ for sub_dir in html conf/ssl mysql_data redis_data init dynamic-projects backend
     mkdir -p "$DEPLOY_DIR/$sub_dir"
 done
 mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
+mkdir -p "$PROJECTS_DIR"
+# 标记持久化目录（部署脚本不会清空 dynamic-projects）
+touch "$PROJECTS_DIR/.persistent_on_host"
 mkdir -p "$DEPLOY_DIR/conf"
 
 # 子台管理端随机入口（首次生成并持久化；REGENERATE_ADMIN_ENTRY=1 可强制换新）
@@ -249,15 +253,19 @@ http {
             try_files \$uri \$uri/ /${ADMIN_ENTRY}/index.html;
         }
 
-        # 用户小页面（dynamic-projects），排除子台入口名
+        # 用户小页面：/项目名/ -> 宿主机 dynamic-projects/项目名/
         location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
             return 301 \$uri/;
         }
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)/ {
-            set \$project_name \$1;
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)(/.*)?\$ {
             root /dynamic-projects;
             index index.html;
-            try_files \$uri \$uri/ /\$project_name/index.html;
+            try_files \$uri \$uri/ =404;
+            error_page 404 = @dynamic_project_spa;
+        }
+        location @dynamic_project_spa {
+            rewrite ^/([a-zA-Z0-9_-]+)(/.*)?\$ /\$1/index.html break;
+            root /dynamic-projects;
         }
     }
 }
@@ -307,6 +315,7 @@ services:
       - ./backend-data:/app/data
     environment:
       - DEPLOY_ROOT=${CONTAINER_PROJECTS_DIR}
+      - NGINX_RELOAD_CMD=echo skip-nginx-in-backend-container
       - RUOYI_PROFILE=/app/data/uploadPath
       - RUOYI_FINGERPRINT_FILE=/app/data/license/device.id
       # 若依使用 spring.datasource.druid.master，不读取 SPRING_DATASOURCE_*，须用 DB_* / REDIS_*
@@ -328,6 +337,7 @@ services:
       - -Dserver.port=8080
       - -Druoyi.profile=/app/data/uploadPath
       - -Druoyi.fingerprintFile=/app/data/license/device.id
+      - -Ddeploy.root=${CONTAINER_PROJECTS_DIR}
       - -jar
       - /app.jar
     restart: always
@@ -472,8 +482,21 @@ chmod -R 755 $PROJECTS_DIR
 chmod -R 755 "$DEPLOY_DIR/backend-data"
 
 cd $DEPLOY_DIR
+# 仅停止容器，不删除宿主机 bind mount 数据（勿用 docker compose down -v）
 docker compose down || true
 docker compose up -d --force-recreate
+
+# 旧版 JAR 可能写入容器内 /opt/homebrew/var/www，合并到持久化目录（不覆盖已有文件）
+echo -e "${YELLOW}>>> 检查并迁移小页面到持久化目录 ${PROJECTS_DIR} ...${NC}"
+docker exec app-deploy-backend-1 sh -c '
+  for legacy in /opt/homebrew/var/www /var/www/html; do
+    if [ -d "$legacy" ] && [ -n "$(ls -A "$legacy" 2>/dev/null)" ]; then
+      echo "迁移: $legacy -> /dynamic-projects"
+      cp -an "$legacy"/. /dynamic-projects/ 2>/dev/null || true
+    fi
+  done
+  ls -la /dynamic-projects/
+' 2>/dev/null || echo -e "${YELLOW}>>> 后端尚未就绪，跳过迁移（可稍后手动 cp）${NC}"
 
 echo -e "${YELLOW}>>> 校验 Nginx 配置...${NC}"
 sleep 3
@@ -534,7 +557,16 @@ echo ""
 echo "子台管理端（请妥善保存，勿公开根路径）:"
 echo "  https://你的服务器IP/${ADMIN_ENTRY}/"
 echo "  入口记录: $ADMIN_ENTRY_FILE"
-echo "动态项目: https://你的服务器IP/项目名/"
+echo "小页面（持久化，重启 Docker 不丢失）:"
+echo "  宿主机目录: $PROJECTS_DIR/<frontendEntry>/"
+echo "  访问地址:   https://你的服务器IP/<frontendEntry>/"
+echo "  注意: 请勿删除 $PROJECTS_DIR；勿使用 docker compose down -v"
+echo ""
+echo "上传后自检:"
+echo "  ls -la $PROJECTS_DIR/"
+echo "  docker exec app-deploy-backend-1 ls -la /dynamic-projects/"
+PROJECT_COUNT=$(find "$PROJECTS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null | wc -l)
+echo "  当前小页面项目数: $PROJECT_COUNT"
 echo ""
 echo "更换随机入口: REGENERATE_ADMIN_ENTRY=1 bash deploy-repo.sh"
 echo ""
