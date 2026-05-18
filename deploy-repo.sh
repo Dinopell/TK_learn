@@ -254,6 +254,11 @@ http {
         }
 
         # 用户小页面：/项目名/ -> 宿主机 dynamic-projects/项目名/
+        # 静态资源须单独匹配：404 时不能回退 index.html，否则 .js 会以 text/html 返回（module script MIME 报错）
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)/(.+\.(js|mjs|css|map|json|woff2?|ttf|eot|otf|svg|png|jpe?g|gif|ico|webp))\$ {
+            root /dynamic-projects;
+            try_files \$uri =404;
+        }
         location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
             return 301 \$uri/;
         }
@@ -266,6 +271,7 @@ http {
         location @dynamic_project_spa {
             rewrite ^/([a-zA-Z0-9_-]+)(/.*)?\$ /\$1/index.html break;
             root /dynamic-projects;
+            default_type text/html;
         }
     }
 }
@@ -475,12 +481,44 @@ patch_dynamic_project_index() {
     local entry="$1"
     local index="$PROJECTS_DIR/$entry/index.html"
     [ -f "$index" ] || return 0
-    if grep -q "<base href=\"/$entry/\"" "$index" 2>/dev/null; then
-        return 0
-    fi
     echo -e "${BLUE}>>> 修补小页面静态路径: /${entry}/${NC}"
-    sed -i "s|<head>|<head><base href=\"/$entry/\">|" "$index"
-    sed -i "s|src=\"/|src=\"/$entry/|g; s|href=\"/|href=\"/$entry/|g" "$index"
+    python3 - "$entry" "$index" <<'PY' 2>/dev/null || patch_dynamic_project_index_sed "$entry" "$index"
+import re, sys
+entry, path = sys.argv[1], sys.argv[2]
+html = open(path, encoding='utf-8').read()
+prefix = '/' + entry.strip('/')
+html = re.sub(r'<base\s+href="[^"]*"\s*/?>', '', html, flags=re.I)
+html = re.sub(r'(src|href)=(["\'])/(?!' + re.escape(entry) + r'/)', r'\1=\2' + prefix + '/', html)
+dup = prefix + prefix + '/'
+while dup in html:
+    html = html.replace(dup, prefix + '/')
+sub = re.search(r'(?:src|href)=["\']' + re.escape(prefix) + r'/([^/"\']+)/', html, re.I)
+base = prefix + ('/' + sub.group(1) + '/' if sub and sub.group(1) not in ('assets', 'static') else '/')
+html = re.sub(r'<head>', '<head><base href="' + base + '">', html, count=1, flags=re.I)
+open(path, 'w', encoding='utf-8').write(html)
+print('patched', path, 'base=', base)
+PY
+}
+
+patch_dynamic_project_index_sed() {
+    local entry="$1"
+    local index="$2"
+    sed -i 's|<base href="[^"]*">||Ig' "$index"
+    while grep -q "/${entry}/${entry}/" "$index" 2>/dev/null; do
+        sed -i "s|/${entry}/${entry}/|/${entry}/|g" "$index"
+    done
+    sed -i "s|\\(src\\|href\\)=\"/\\(?!${entry}/\\)|\\1=\"/${entry}/|g" "$index" 2>/dev/null || \
+        sed -i "s|src=\"/|src=\"/${entry}/|g; s|href=\"/|href=\"/${entry}/|g" "$index"
+    while grep -q "/${entry}/${entry}/" "$index" 2>/dev/null; do
+        sed -i "s|/${entry}/${entry}/|/${entry}/|g" "$index"
+    done
+    local sub
+    sub=$(grep -oE "(src|href)=\"/${entry}/[^/]+/" "$index" | head -1 | sed "s|.*\"/${entry}/||;s|/.*||")
+    local base="/${entry}/"
+    if [ -n "$sub" ] && [ "$sub" != "assets" ] && [ "$sub" != "static" ]; then
+        base="/${entry}/${sub}/"
+    fi
+    sed -i "s|<head>|<head><base href=\"${base}\">|" "$index"
 }
 
 # =========================================================
