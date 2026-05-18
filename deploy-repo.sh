@@ -12,6 +12,7 @@
 # 7. 部署后自动 nginx -t 与基础健康检查
 # 8. 持久化设备指纹 device.id（重启容器后激活状态不丢失）
 # 9. 子台管理端随机入口路径（禁止 IP 根路径直接访问）
+# 10. /static、/assets 回退映射到子台目录（修复 publicPath=/ 时 CSS/JS chunk 404）
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -205,11 +206,18 @@ http {
         location = /index.html {
             return 404;
         }
+
+        # 预编译 dist 的 publicPath 仍为 / 时，懒加载 chunk 会请求 /static/js|css/...
+        # 映射到子台目录（仅静态资源，根路径 / 仍 404，不能直接打开管理端）
         location ^~ /static/ {
-            return 404;
+            alias /usr/share/nginx/html/${ADMIN_ENTRY}/static/;
+            expires 7d;
+            add_header Cache-Control "public";
         }
         location ^~ /assets/ {
-            return 404;
+            alias /usr/share/nginx/html/${ADMIN_ENTRY}/assets/;
+            expires 7d;
+            add_header Cache-Control "public";
         }
 
         location ^~ /prod-api/ {
