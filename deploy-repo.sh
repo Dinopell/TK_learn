@@ -24,7 +24,7 @@ PROJECTS_DIR="$DEPLOY_DIR/dynamic-projects"
 MYSQL_PWD="MAmLvxD#uGD1UbSR"
 
 # 4. 总台（主站）对接配置
-MASTER_URL="${MASTER_URL:-https://43.165.185.39/prod-api}"
+MASTER_URL="${MASTER_URL:-https://43.165.173.66/prod-api}"
 MASTER_API_KEY="${MASTER_API_KEY:-ruoyi-master-key}"
 MASTER_SERVER_URL="${MASTER_SERVER_URL:-$MASTER_URL}"
 MASTER_SSL_INSECURE="${MASTER_SSL_INSECURE:-true}"
@@ -240,10 +240,14 @@ services:
     volumes:
       - ./repo_source/springboot-app.jar:/app.jar
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/tk-admin?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PWD}
-      - SPRING_REDIS_HOST=redis
+      # 若依使用 spring.datasource.druid.master，不读取 SPRING_DATASOURCE_*，须用 DB_* / REDIS_*
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=tk-admin
+      - DB_USERNAME=root
+      - DB_PASSWORD=${MYSQL_PWD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - MASTER_URL=${MASTER_URL}
       - MASTER_API_KEY=${MASTER_API_KEY}
       - MASTER_SERVER_URL=${MASTER_SERVER_URL}
