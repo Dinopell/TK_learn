@@ -231,6 +231,14 @@ http {
             proxy_read_timeout 60s;
         }
 
+        # 旧包 router base 未生效时，误跳根路径 /index、/login 的兜底（302 到随机入口下）
+        location = /index {
+            return 302 /${ADMIN_ENTRY}/index;
+        }
+        location = /login {
+            return 302 /${ADMIN_ENTRY}/login;
+        }
+
         # 子台管理端：仅允许 /${ADMIN_ENTRY}/ 访问
         location = /${ADMIN_ENTRY} {
             return 301 /${ADMIN_ENTRY}/;
@@ -353,6 +361,9 @@ patch_admin_dist_for_entry() {
 
     # 1) index.html：最先注入 publicPath（修复懒加载 JS/CSS chunk 仍走 /static/...）
     if [ -f "$dir/index.html" ]; then
+        if ! grep -q '<base href=' "$dir/index.html"; then
+            sed -i "s|<head>|<head><base href=\"${base_slash}\">|" "$dir/index.html"
+        fi
         if ! grep -q '__webpack_public_path__' "$dir/index.html"; then
             sed -i "s|<head>|<head><script>__webpack_public_path__='${base_slash}';</script>|" "$dir/index.html"
         fi
@@ -392,8 +403,14 @@ patch_admin_dist_for_entry() {
             -e "s|'/static/|'${base}/static/|g" \
             -e "s|+\"/static/|+\"${base}/static/|g" \
             -e "s|+'/static/'|+'${base}/static/'|g" \
+            -e "s|base:\"/\"|base:\"${base_slash}\"|g" \
+            -e "s|base:'/'|base:'${base_slash}'|g" \
             -e "s|mode:\"history\",scrollBehavior|mode:\"history\",base:\"${base_slash}\",scrollBehavior|g" \
             -e "s|mode:'history',scrollBehavior|mode:'history',base:'${base_slash}',scrollBehavior|g" \
+            -e "s|location\\.href=\"/index\"|location.href=\"${base}/index\"|g" \
+            -e "s|location\\.href='/index'|location.href='${base}/index'|g" \
+            -e "s|location\\.href=\"/login\"|location.href=\"${base}/login\"|g" \
+            -e "s|location\\.href='/login'|location.href='${base}/login'|g" \
             "$f" || true
     done
 
