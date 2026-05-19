@@ -36,9 +36,35 @@ MASTER_URL="${MASTER_URL:-https://43.165.173.66/prod-api}"
 MASTER_API_KEY="${MASTER_API_KEY:-ruoyi-master-key}"
 MASTER_SERVER_URL="${MASTER_SERVER_URL:-$MASTER_URL}"
 MASTER_SSL_INSECURE="${MASTER_SSL_INSECURE:-true}"
+DEPLOY_SCRIPT_VER="20260519-http-b"
 # =========================================================
 
 set -e
+
+# 宿主机若单独装了 Nginx 且配置了 return 301 https，会抢在 Docker 前把 HTTP 变 HTTPS
+fix_host_nginx_https_redirect() {
+    if ! command -v nginx &>/dev/null; then
+        return 0
+    fi
+    if ! sudo grep -rq 'return 301 https' /etc/nginx/ 2>/dev/null; then
+        return 0
+    fi
+    echo -e "${YELLOW}>>> 宿主机 Nginx 含「return 301 https」（常见原因：HTTP 自动变 HTTPS）${NC}"
+    sudo grep -rn 'return 301 https' /etc/nginx/ 2>/dev/null | head -5 || true
+    if [ "${FIX_HOST_NGINX:-0}" != "1" ]; then
+        echo -e "${RED}>>> 请带环境变量重新执行: FIX_HOST_NGINX=1 bash deploy-repo.sh${NC}"
+        exit 1
+    fi
+    echo -e "${BLUE}>>> FIX_HOST_NGINX=1：注释宿主机 HTTPS 强制跳转并 reload...${NC}"
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        sudo cp -a "$f" "${f}.bak.http-deploy"
+        sudo sed -i 's/^\([[:space:]]*return 301 https\)/# \1 # disabled by deploy-repo.sh/' "$f"
+    done < <(sudo grep -rl 'return 301 https' /etc/nginx/ 2>/dev/null || true)
+    sudo nginx -t
+    sudo systemctl reload nginx 2>/dev/null || sudo nginx -s reload
+    echo -e "${GREEN}>>> 宿主机 Nginx 已 reload${NC}"
+}
 
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
@@ -46,7 +72,7 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${YELLOW}>>> 开始部署 TK 子台系统 [分支: $REPO_BRANCH]...${NC}"
+echo -e "${YELLOW}>>> 开始部署 TK 子台系统 [脚本: $DEPLOY_SCRIPT_VER] [分支: $REPO_BRANCH]...${NC}"
 
 # =========================================================
 # 0. 环境依赖检查与系统优化
@@ -469,6 +495,11 @@ chmod -R 755 $PROJECTS_DIR
 chmod -R 755 "$DEPLOY_DIR/backend-data"
 
 cd $DEPLOY_DIR
+
+echo -e "${YELLOW}>>> 检查 80 端口与宿主机 Nginx...${NC}"
+(ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null) | grep ':80 ' || true
+fix_host_nginx_https_redirect
+
 # 仅停止容器，不删除宿主机 bind mount 数据（勿用 docker compose down -v）
 docker compose down || true
 docker compose up -d --force-recreate
@@ -522,7 +553,12 @@ if echo "$HTTP_LOC" | grep -qi 'https://'; then
     echo "  2) 宿主机 Nginx 是否占用 80: sudo ss -tlnp | grep ':80'"
     echo "  3) 宿主机配置: sudo grep -r 'return 301 https' /etc/nginx/ 2>/dev/null"
     echo "  4) 容器配置: docker exec app-deploy-frontend-1 grep listen /etc/nginx/nginx.conf"
-    exit 1
+    echo "  5) 一键修宿主机: FIX_HOST_NGINX=1 bash deploy-repo.sh"
+    fix_host_nginx_https_redirect || true
+    HTTP_LOC2=$(curl -sI http://127.0.0.1/ 2>/dev/null | tr -d '\r' | grep -i '^Location:' | head -1 || true)
+    if echo "$HTTP_LOC2" | grep -qi 'https://'; then
+        exit 1
+    fi
 fi
 
 ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/ || echo "000")
