@@ -196,6 +196,9 @@ http {
     server {
         listen 80;
 
+        # 曾启用过 HTTPS 时，浏览器可能缓存 HSTS；显式清除避免继续强制 https
+        add_header Strict-Transport-Security "max-age=0" always;
+
         # 禁止通过 IP/ 根路径直接进入子台管理端
         location = / {
             return 404;
@@ -486,6 +489,12 @@ echo -e "${YELLOW}>>> 校验 Nginx 配置...${NC}"
 sleep 3
 docker exec app-deploy-frontend-1 nginx -t
 
+# 确认容器内配置无 HTTP→HTTPS 跳转（旧版遗留会导致浏览器自动变 https）
+if docker exec app-deploy-frontend-1 grep -q 'return 301 https' /etc/nginx/nginx.conf 2>/dev/null; then
+    echo -e "${RED}>>> 容器 Nginx 仍含「return 301 https」，请确认已用本脚本重新生成 conf/nginx.conf${NC}"
+    exit 1
+fi
+
 echo -e "${YELLOW}>>> 等待 MySQL 启动并导入 SQL...${NC}"
 sleep 20
 
@@ -503,6 +512,18 @@ done
 # 8. 健康检查
 # =========================================================
 echo -e "${YELLOW}>>> 健康检查...${NC}"
+
+# HTTP 若仍 301 到 https，说明未生效或宿主机还有一层 Nginx 在跳转
+HTTP_LOC=$(curl -sI http://127.0.0.1/ 2>/dev/null | tr -d '\r' | grep -i '^Location:' | head -1 || true)
+if echo "$HTTP_LOC" | grep -qi 'https://'; then
+    echo -e "${RED}>>> 本机 HTTP 仍被重定向到 HTTPS: $HTTP_LOC${NC}"
+    echo -e "${YELLOW}>>> 请检查:${NC}"
+    echo "  1) 是否在服务器执行了最新 deploy-repo.sh（非仅改本地文件）"
+    echo "  2) 宿主机 Nginx 是否占用 80: sudo ss -tlnp | grep ':80'"
+    echo "  3) 宿主机配置: sudo grep -r 'return 301 https' /etc/nginx/ 2>/dev/null"
+    echo "  4) 容器配置: docker exec app-deploy-frontend-1 grep listen /etc/nginx/nginx.conf"
+    exit 1
+fi
 
 ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/ || echo "000")
 ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1/${ADMIN_ENTRY}/" || echo "000")
