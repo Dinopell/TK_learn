@@ -218,6 +218,12 @@ http {
     sendfile on;
     client_max_body_size 500m;
 
+    # SockJS / STOMP WebSocket 升级（缺此项时 ws://.../websocket 失败，仅能 xhr 轮询）
+    map \$http_upgrade \$connection_upgrade {
+        default upgrade;
+        ''      close;
+    }
+
     # 纯 HTTP（80），小页面示例: http://IP/<frontendEntry>/visit
     server {
         listen 80;
@@ -253,8 +259,12 @@ http {
             proxy_set_header X-Real-IP \$remote_addr;
             proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \$connection_upgrade;
+            proxy_buffering off;
             proxy_connect_timeout 60s;
-            proxy_read_timeout 60s;
+            proxy_send_timeout 3600s;
+            proxy_read_timeout 3600s;
         }
 
         # 旧包 router base 未生效时，误跳根路径 /index、/login 的兜底（302 到随机入口下）
