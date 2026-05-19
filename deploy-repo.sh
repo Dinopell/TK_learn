@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =================================================================
-# TK 子台最终稳定版部署脚本 (HTTPS + Feature 分支)
+# TK 子台最终稳定版部署脚本 (HTTP + Feature 分支)
 # 修复内容：
 # 1. 自动安装 Docker/Git-LFS 依赖
 # 2. 修复 Git 仓库所有权与安全目录问题 (Dubious ownership)
@@ -80,7 +80,7 @@ echo -e "${YELLOW}>>> 初始化目录...${NC}"
 mkdir -p "$DEPLOY_DIR"
 
 # 一次性创建子目录
-for sub_dir in html conf/ssl mysql_data redis_data init dynamic-projects backend-data; do
+for sub_dir in html conf mysql_data redis_data init dynamic-projects backend-data; do
     mkdir -p "$DEPLOY_DIR/$sub_dir"
 done
 mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
@@ -192,16 +192,9 @@ http {
     sendfile on;
     client_max_body_size 500m;
 
+    # 纯 HTTP（80），小页面示例: http://IP/<frontendEntry>/visit
     server {
         listen 80;
-        return 301 https://\$host\$request_uri;
-    }
-
-    server {
-        listen 443 ssl;
-        http2 on;
-        ssl_certificate /etc/nginx/ssl/server.crt;
-        ssl_certificate_key /etc/nginx/ssl/server.key;
 
         # 禁止通过 IP/ 根路径直接进入子台管理端
         location = / {
@@ -349,19 +342,17 @@ services:
       - backend
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./html:/usr/share/nginx/html
       - ./dynamic-projects:/dynamic-projects
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./conf/ssl:/etc/nginx/ssl:ro
     restart: always
 EOF
 
 # =========================================================
-# 6. HTTPS 证书与前端资源（子台解压到随机入口目录）
+# 6. 前端资源（子台解压到随机入口目录）
 # =========================================================
-echo -e "${YELLOW}>>> 处理证书与前端静态资源...${NC}"
+echo -e "${YELLOW}>>> 处理前端静态资源...${NC}"
 
 # 将 publicPath=/ 构建产物改为 /${ADMIN_ENTRY}/ 子路径（兼容仓库内预编译 dist.zip）
 patch_admin_dist_for_entry() {
@@ -431,13 +422,6 @@ patch_admin_dist_for_entry() {
         grep -rl '"/static/css/' "$dir" 2>/dev/null | head -3 || true
     fi
 }
-
-if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
-    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-    -keyout $DEPLOY_DIR/conf/ssl/server.key \
-    -out $DEPLOY_DIR/conf/ssl/server.crt \
-    -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
-fi
 
 ADMIN_HTML_DIR="$DEPLOY_DIR/html/$ADMIN_ENTRY"
 rm -rf "$ADMIN_HTML_DIR"
@@ -520,8 +504,8 @@ done
 # =========================================================
 echo -e "${YELLOW}>>> 健康检查...${NC}"
 
-ROOT_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://127.0.0.1/ || echo "000")
-ADMIN_CODE=$(curl -sk -o /dev/null -w "%{http_code}" "https://127.0.0.1/${ADMIN_ENTRY}/" || echo "000")
+ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/ || echo "000")
+ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1/${ADMIN_ENTRY}/" || echo "000")
 if [ "$ROOT_CODE" = "404" ]; then
     echo -e "${GREEN}>>> 根路径已禁止访问 (404)${NC}"
 else
@@ -530,7 +514,7 @@ fi
 if [ "$ADMIN_CODE" = "200" ]; then
     echo -e "${GREEN}>>> 子台入口 /${ADMIN_ENTRY}/ 返回 200 OK${NC}"
 else
-    echo -e "${YELLOW}>>> 子台入口返回 $ADMIN_CODE（若刚启动可稍等: curl -k -I https://127.0.0.1/${ADMIN_ENTRY}/）${NC}"
+    echo -e "${YELLOW}>>> 子台入口返回 $ADMIN_CODE（若刚启动可稍等: curl -I http://127.0.0.1/${ADMIN_ENTRY}/）${NC}"
 fi
 
 if docker logs app-deploy-backend-1 2>&1 | tail -50 | grep -q "若依启动成功"; then
@@ -555,11 +539,12 @@ echo "分支: $REPO_BRANCH"
 echo "总台对接: $MASTER_URL"
 echo ""
 echo "子台管理端（请妥善保存，勿公开根路径）:"
-echo "  https://你的服务器IP/${ADMIN_ENTRY}/"
+echo "  http://你的服务器IP/${ADMIN_ENTRY}/"
 echo "  入口记录: $ADMIN_ENTRY_FILE"
 echo "小页面（持久化，重启 Docker 不丢失）:"
 echo "  宿主机目录: $PROJECTS_DIR/<frontendEntry>/"
-echo "  访问地址:   https://你的服务器IP/<frontendEntry>/"
+echo "  访问地址:   http://你的服务器IP/<frontendEntry>/"
+echo "  示例:       http://你的服务器IP/27ba0c938d486d91/visit"
 echo "  注意: 请勿删除 $PROJECTS_DIR；勿使用 docker compose down -v"
 echo ""
 echo "上传后自检:"
