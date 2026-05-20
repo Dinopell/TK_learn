@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =================================================================
-# TK 子台最终稳定版部署脚本 (HTTP + Feature 分支)
+# TK 子台最终稳定版部署脚本 (子台 HTTP:80 + 小页面 HTTPS:443 + Feature 分支)
 # 修复内容：
 # 1. 自动安装 Docker/Git-LFS 依赖
 # 2. 修复 Git 仓库所有权与安全目录问题 (Dubious ownership)
@@ -36,7 +36,7 @@ MASTER_URL="${MASTER_URL:-https://43.165.173.66/prod-api}"
 MASTER_API_KEY="${MASTER_API_KEY:-ruoyi-master-key}"
 MASTER_SERVER_URL="${MASTER_SERVER_URL:-$MASTER_URL}"
 MASTER_SSL_INSECURE="${MASTER_SSL_INSECURE:-true}"
-DEPLOY_SCRIPT_VER="20260519-http-b"
+DEPLOY_SCRIPT_VER="20260519-split-http-https"
 # =========================================================
 
 set -e
@@ -106,7 +106,7 @@ echo -e "${YELLOW}>>> 初始化目录...${NC}"
 mkdir -p "$DEPLOY_DIR"
 
 # 一次性创建子目录
-for sub_dir in html conf mysql_data redis_data init dynamic-projects backend-data; do
+for sub_dir in html conf/ssl mysql_data redis_data init dynamic-projects backend-data; do
     mkdir -p "$DEPLOY_DIR/$sub_dir"
 done
 mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
@@ -224,14 +224,10 @@ http {
         ''      close;
     }
 
-    # 纯 HTTP（80），小页面示例: http://IP/<frontendEntry>/visit
+    # ---------- 80：子台管理端 HTTP（勿对小页面整站跳 HTTPS，避免管理端被带上）----------
     server {
         listen 80;
 
-        # 曾启用过 HTTPS 时，浏览器可能缓存 HSTS；显式清除避免继续强制 https
-        add_header Strict-Transport-Security "max-age=0" always;
-
-        # 禁止通过 IP/ 根路径直接进入子台管理端
         location = / {
             return 404;
         }
@@ -239,8 +235,6 @@ http {
             return 404;
         }
 
-        # 预编译 dist 的 publicPath 仍为 / 时，懒加载 chunk 会请求 /static/js|css/...
-        # 映射到子台目录（仅静态资源，根路径 / 仍 404，不能直接打开管理端）
         location ^~ /static/ {
             alias /usr/share/nginx/html/${ADMIN_ENTRY}/static/;
             expires 7d;
@@ -267,7 +261,6 @@ http {
             proxy_read_timeout 3600s;
         }
 
-        # 旧包 router base 未生效时，误跳根路径 /index、/login 的兜底（302 到随机入口下）
         location = /index {
             return 302 /${ADMIN_ENTRY}/index;
         }
@@ -275,7 +268,6 @@ http {
             return 302 /${ADMIN_ENTRY}/login;
         }
 
-        # 子台管理端：仅允许 /${ADMIN_ENTRY}/ 访问
         location = /${ADMIN_ENTRY} {
             return 301 /${ADMIN_ENTRY}/;
         }
@@ -285,7 +277,41 @@ http {
             try_files \$uri \$uri/ /${ADMIN_ENTRY}/index.html;
         }
 
-        # 用户小页面：/项目名/ -> 宿主机 dynamic-projects/项目名/
+        # 小页面仅 HTTPS：HTTP 访问 /项目名/ 时跳到 443
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
+            return 301 https://\$host\$uri/;
+        }
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)(/.*)?\$ {
+            return 301 https://\$host\$request_uri;
+        }
+    }
+
+    # ---------- 443：用户小页面 HTTPS + 同源 /prod-api（SockJS/WSS）----------
+    server {
+        listen 443 ssl;
+        http2 on;
+        ssl_certificate /etc/nginx/ssl/server.crt;
+        ssl_certificate_key /etc/nginx/ssl/server.key;
+
+        location = / {
+            return 404;
+        }
+
+        location ^~ /prod-api/ {
+            proxy_pass http://backend:8080/;
+            proxy_http_version 1.1;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \$connection_upgrade;
+            proxy_buffering off;
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 3600s;
+            proxy_read_timeout 3600s;
+        }
+
         location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
             return 301 \$uri/;
         }
@@ -298,6 +324,20 @@ http {
         location @dynamic_project_spa {
             rewrite ^/([a-zA-Z0-9_-]+)(/.*)?\$ /\$1/index.html break;
             root /dynamic-projects;
+        }
+
+        # 管理端只用 HTTP，HTTPS 误访时跳回 80
+        location = /${ADMIN_ENTRY} {
+            return 302 http://\$host/${ADMIN_ENTRY}/;
+        }
+        location ^~ /${ADMIN_ENTRY}/ {
+            return 302 http://\$host\$request_uri;
+        }
+        location ^~ /static/ {
+            return 302 http://\$host\$request_uri;
+        }
+        location ^~ /assets/ {
+            return 302 http://\$host\$request_uri;
         }
     }
 }
@@ -381,17 +421,27 @@ services:
       - backend
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./html:/usr/share/nginx/html
       - ./dynamic-projects:/dynamic-projects
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./conf/ssl:/etc/nginx/ssl:ro
     restart: always
 EOF
 
 # =========================================================
-# 6. 前端资源（子台解压到随机入口目录）
+# 6. 小页面 HTTPS 证书与前端资源（子台解压到随机入口目录）
 # =========================================================
-echo -e "${YELLOW}>>> 处理前端静态资源...${NC}"
+echo -e "${YELLOW}>>> 处理 SSL 证书与前端静态资源...${NC}"
+
+if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+    -keyout $DEPLOY_DIR/conf/ssl/server.key \
+    -out $DEPLOY_DIR/conf/ssl/server.crt \
+    -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
+fi
+
 
 # 将 publicPath=/ 构建产物改为 /${ADMIN_ENTRY}/ 子路径（兼容仓库内预编译 dist.zip）
 patch_admin_dist_for_entry() {
@@ -530,12 +580,6 @@ echo -e "${YELLOW}>>> 校验 Nginx 配置...${NC}"
 sleep 3
 docker exec app-deploy-frontend-1 nginx -t
 
-# 确认容器内配置无 HTTP→HTTPS 跳转（旧版遗留会导致浏览器自动变 https）
-if docker exec app-deploy-frontend-1 grep -q 'return 301 https' /etc/nginx/nginx.conf 2>/dev/null; then
-    echo -e "${RED}>>> 容器 Nginx 仍含「return 301 https」，请确认已用本脚本重新生成 conf/nginx.conf${NC}"
-    exit 1
-fi
-
 echo -e "${YELLOW}>>> 等待 MySQL 启动并导入 SQL...${NC}"
 sleep 20
 
@@ -554,34 +598,34 @@ done
 # =========================================================
 echo -e "${YELLOW}>>> 健康检查...${NC}"
 
-# HTTP 若仍 301 到 https，说明未生效或宿主机还有一层 Nginx 在跳转
-HTTP_LOC=$(curl -sI http://127.0.0.1/ 2>/dev/null | tr -d '\r' | grep -i '^Location:' | head -1 || true)
-if echo "$HTTP_LOC" | grep -qi 'https://'; then
-    echo -e "${RED}>>> 本机 HTTP 仍被重定向到 HTTPS: $HTTP_LOC${NC}"
-    echo -e "${YELLOW}>>> 请检查:${NC}"
-    echo "  1) 是否在服务器执行了最新 deploy-repo.sh（非仅改本地文件）"
-    echo "  2) 宿主机 Nginx 是否占用 80: sudo ss -tlnp | grep ':80'"
-    echo "  3) 宿主机配置: sudo grep -r 'return 301 https' /etc/nginx/ 2>/dev/null"
-    echo "  4) 容器配置: docker exec app-deploy-frontend-1 grep listen /etc/nginx/nginx.conf"
-    echo "  5) 一键修宿主机: FIX_HOST_NGINX=1 bash deploy-repo.sh"
-    fix_host_nginx_https_redirect || true
-    HTTP_LOC2=$(curl -sI http://127.0.0.1/ 2>/dev/null | tr -d '\r' | grep -i '^Location:' | head -1 || true)
-    if echo "$HTTP_LOC2" | grep -qi 'https://'; then
-        exit 1
-    fi
-fi
-
 ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/ || echo "000")
 ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1/${ADMIN_ENTRY}/" || echo "000")
 if [ "$ROOT_CODE" = "404" ]; then
-    echo -e "${GREEN}>>> 根路径已禁止访问 (404)${NC}"
+    echo -e "${GREEN}>>> 根路径 HTTP 已禁止访问 (404)${NC}"
 else
-    echo -e "${YELLOW}>>> 根路径返回 $ROOT_CODE（期望 404）${NC}"
+    echo -e "${YELLOW}>>> 根路径 HTTP 返回 $ROOT_CODE（期望 404）${NC}"
 fi
 if [ "$ADMIN_CODE" = "200" ]; then
-    echo -e "${GREEN}>>> 子台入口 /${ADMIN_ENTRY}/ 返回 200 OK${NC}"
+    echo -e "${GREEN}>>> 子台管理端 HTTP /${ADMIN_ENTRY}/ 返回 200 OK${NC}"
 else
     echo -e "${YELLOW}>>> 子台入口返回 $ADMIN_CODE（若刚启动可稍等: curl -I http://127.0.0.1/${ADMIN_ENTRY}/）${NC}"
+fi
+
+SAMPLE_PROJECT=$(find "$PROJECTS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null | head -1)
+if [ -n "$SAMPLE_PROJECT" ]; then
+    SAMPLE_NAME=$(basename "$SAMPLE_PROJECT")
+    HTTP_PAGE_LOC=$(curl -sI "http://127.0.0.1/${SAMPLE_NAME}/" 2>/dev/null | tr -d '\r' | grep -i '^Location:' | head -1 || true)
+    HTTPS_PAGE_CODE=$(curl -sk -o /dev/null -w "%{http_code}" "https://127.0.0.1/${SAMPLE_NAME}/" 2>/dev/null || echo "000")
+    if echo "$HTTP_PAGE_LOC" | grep -qi 'https://'; then
+        echo -e "${GREEN}>>> 小页面 HTTP→HTTPS 跳转正常: /${SAMPLE_NAME}/ → $HTTP_PAGE_LOC${NC}"
+    else
+        echo -e "${YELLOW}>>> 小页面 HTTP 未跳 HTTPS（期望 301）: $HTTP_PAGE_LOC${NC}"
+    fi
+    if [ "$HTTPS_PAGE_CODE" = "200" ]; then
+        echo -e "${GREEN}>>> 小页面 HTTPS /${SAMPLE_NAME}/ 返回 200 OK${NC}"
+    else
+        echo -e "${YELLOW}>>> 小页面 HTTPS 返回 $HTTPS_PAGE_CODE（可稍后: curl -k -I https://127.0.0.1/${SAMPLE_NAME}/）${NC}"
+    fi
 fi
 
 if docker logs app-deploy-backend-1 2>&1 | tail -50 | grep -q "若依启动成功"; then
@@ -605,13 +649,14 @@ echo "TK 子台部署完成！"
 echo "分支: $REPO_BRANCH"
 echo "总台对接: $MASTER_URL"
 echo ""
-echo "子台管理端（请妥善保存，勿公开根路径）:"
+echo "子台管理端（HTTP，请妥善保存入口）:"
 echo "  http://你的服务器IP/${ADMIN_ENTRY}/"
 echo "  入口记录: $ADMIN_ENTRY_FILE"
-echo "小页面（持久化，重启 Docker 不丢失）:"
+echo "小页面（HTTPS，持久化，重启 Docker 不丢失）:"
 echo "  宿主机目录: $PROJECTS_DIR/<frontendEntry>/"
-echo "  访问地址:   http://你的服务器IP/<frontendEntry>/"
-echo "  示例:       http://你的服务器IP/27ba0c938d486d91/visit"
+echo "  访问地址:   https://你的服务器IP/<frontendEntry>/"
+echo "  示例:       https://你的服务器IP/asset74/visit"
+echo "  说明: HTTP 访问 /项目名/ 会自动 301 到 HTTPS"
 echo "  注意: 请勿删除 $PROJECTS_DIR；勿使用 docker compose down -v"
 echo ""
 echo "上传后自检:"
