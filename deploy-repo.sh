@@ -501,6 +501,10 @@ patch_admin_dist_for_entry() {
             -e "s|location\\.href='/index'|location.href='${base}/index'|g" \
             -e "s|location\\.href=\"/login\"|location.href=\"${base}/login\"|g" \
             -e "s|location\\.href='/login'|location.href='${base}/login'|g" \
+            -e "s|concat(t,\"logo-tktk.png\")|\"${base}/logo-tktk.png\"|g" \
+            -e "s|concat(t,'logo-tktk.png')|'${base}/logo-tktk.png'|g" \
+            -e "s|\"/logo-tktk.png\"|\"${base}/logo-tktk.png\"|g" \
+            -e "s|'/logo-tktk.png'|'${base}/logo-tktk.png'|g" \
             "$f" || true
     done
 
