@@ -3715,8 +3715,8 @@ BEGIN;
 INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, 103, 'admin', '哈哈哈', '00', 'ry@163.com', '15888888888', '1', '/profile/avatar/2026/01/23/06c0117cb581450780fd1c298a216345.png', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-05-09 22:47:50', '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', '2026-01-23 04:56:14', '管理员');
 INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (2, 105, 'ry', '你好呀', '00', 'ry@qq.com', '15666666666', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-05-02 22:44:39', '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', NULL, '测试员');
 INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (100, 100, 'youke_000', '游客', '00', '1@qq.com', '18888888888', '2', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-05-02 21:20:30', '2026-05-02 13:07:17', 'admin', '2026-05-01 12:03:36', 'admin', '2026-05-02 13:10:25', NULL);
-INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (101, 103, 'admin1', '管理员1', '00', 'admin1@qq.com', '15888888881', '0', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '', NULL, '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', NULL, '管理员');
-INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (102, 103, 'admin2', '管理员2', '00', 'admin2@qq.com', '15888888882', '0', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '', NULL, '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', NULL, '管理员');
+INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (101, 105, 'admin1', '管理员1', '00', 'admin1@qq.com', '15888888881', '0', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '', NULL, '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', NULL, '管理员');
+INSERT INTO `sys_user` (`user_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phonenumber`, `sex`, `avatar`, `password`, `status`, `del_flag`, `login_ip`, `login_date`, `pwd_update_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (102, 105, 'admin2', '管理员2', '00', 'admin2@qq.com', '15888888882', '0', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '', NULL, '2025-12-03 13:15:42', 'admin', '2025-12-03 13:15:42', '', NULL, '管理员');
 COMMIT;
 
 -- ----------------------------
@@ -3797,8 +3797,8 @@ BEGIN;
 INSERT INTO `sys_user_post` (`user_id`, `post_id`) VALUES (1, 1);
 INSERT INTO `sys_user_post` (`user_id`, `post_id`) VALUES (2, 2);
 INSERT INTO `sys_user_post` (`user_id`, `post_id`) VALUES (100, 4);
-INSERT INTO `sys_user_post` (`user_id`, `post_id`) VALUES (101, 1);
-INSERT INTO `sys_user_post` (`user_id`, `post_id`) VALUES (102, 1);
+INSERT INTO `sys_user_post` (`user_id`, `post_id`) VALUES (101, 2);
+INSERT INTO `sys_user_post` (`user_id`, `post_id`) VALUES (102, 2);
 COMMIT;
 
 -- ----------------------------
@@ -3818,8 +3818,8 @@ BEGIN;
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (1, 1);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (2, 2);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (100, 100);
-INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (101, 1);
-INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (102, 1);
+INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (101, 2);
+INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (102, 2);
 COMMIT;
 
 -- ----------------------------
