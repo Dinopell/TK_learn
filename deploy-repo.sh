@@ -14,6 +14,7 @@
 # 9. 子台管理端随机入口路径（禁止 IP 根路径直接访问）
 # 10. /static、/assets 回退映射到子台目录（修复 publicPath=/ 时 CSS/JS chunk 404）
 # 11. 小页面持久化在宿主机 dynamic-projects（bind mount，docker restart 不丢失）
+# 12. SQL 含 99_remove_platform_extra_menus.sql，在 tk-admin 导入后自动清理多余菜单
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -185,7 +186,9 @@ echo -e "${YELLOW}>>> 准备 SQL 脚本...${NC}"
 rm -f $DEPLOY_DIR/init/*.sql || true
 
 if [ -d "$REPO_DIR/sql" ]; then
-    cp $REPO_DIR/sql/*.sql $DEPLOY_DIR/init/
+    cp "$REPO_DIR/sql"/*.sql "$DEPLOY_DIR/init/" 2>/dev/null || true
+elif [ -d "$REPO_DIR/BS/sql" ]; then
+    cp "$REPO_DIR/BS/sql"/*.sql "$DEPLOY_DIR/init/" 2>/dev/null || true
 fi
 
 INIT_SQL_FILE="$DEPLOY_DIR/init/00_create_databases.sql"
@@ -591,10 +594,15 @@ docker exec -i app-deploy-mysql-1 \
 mysql -uroot -p"${MYSQL_PWD}" \
 -e "CREATE DATABASE IF NOT EXISTS \`tk-admin\` DEFAULT CHARACTER SET utf8mb4;"
 
-for sql in $(ls $DEPLOY_DIR/init/*.sql | sort); do
-    echo -e "${BLUE}>>> 执行: $sql${NC}"
+for sql in $(ls $DEPLOY_DIR/init/*.sql 2>/dev/null | sort); do
+    base=$(basename "$sql")
+    if [[ "$base" == "99_remove_platform_extra_menus.sql" ]]; then
+        echo -e "${BLUE}>>> 清理平台设置多余菜单: $sql${NC}"
+    else
+        echo -e "${BLUE}>>> 执行: $sql${NC}"
+    fi
     docker exec -i app-deploy-mysql-1 \
-    mysql -uroot -p"${MYSQL_PWD}" tk-admin < "$sql" || true
+    mysql -uroot -p"${MYSQL_PWD}" --default-character-set=utf8mb4 tk-admin < "$sql" || true
 done
 
 # =========================================================
