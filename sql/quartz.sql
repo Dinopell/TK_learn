@@ -14,9 +14,6 @@
  Date: 05/03/2026 15:07:49
 */
 
-CREATE DATABASE IF NOT EXISTS `quartz` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `quartz`;
-
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
