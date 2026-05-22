@@ -14,7 +14,7 @@
 # 9. 子台管理端随机入口路径（禁止 IP 根路径直接访问）
 # 10. /static、/assets 回退映射到子台目录（修复 publicPath=/ 时 CSS/JS chunk 404）
 # 11. 小页面持久化在宿主机 dynamic-projects（bind mount，docker restart 不丢失）
-# 12. SQL 含 99_remove_platform_extra_menus.sql、100_vcode_inline_json_and_deploy_status.sql（验证码联调字段）
+# 12. SQL 含 99_remove_platform_extra_menus、100_vcode_full_database_patch（验证码+部署状态库表）
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -598,6 +598,8 @@ for sql in $(ls $DEPLOY_DIR/init/*.sql 2>/dev/null | sort); do
     base=$(basename "$sql")
     if [[ "$base" == "99_remove_platform_extra_menus.sql" ]]; then
         echo -e "${BLUE}>>> 清理平台设置多余菜单: $sql${NC}"
+    elif [[ "$base" == "100_vcode_full_database_patch.sql" ]]; then
+        echo -e "${BLUE}>>> 验证码联调数据库补丁: $sql${NC}"
     else
         echo -e "${BLUE}>>> 执行: $sql${NC}"
     fi
