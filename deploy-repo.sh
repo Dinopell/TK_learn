@@ -14,7 +14,7 @@
 # 9. 子台管理端随机入口路径（禁止 IP 根路径直接访问）
 # 10. /static、/assets 回退映射到子台目录（修复 publicPath=/ 时 CSS/JS chunk 404）
 # 11. 小页面持久化在宿主机 dynamic-projects（bind mount，docker restart 不丢失）
-# 12. SQL 含 99_remove_platform_extra_menus.sql，在 tk-admin 导入后自动清理多余菜单
+# 12. SQL 含 99_remove_platform_extra_menus.sql、100_vcode_inline_json_and_deploy_status.sql（验证码联调字段）
 # =================================================================
 
 # ========================= 配置区 =========================
