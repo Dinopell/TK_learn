@@ -644,7 +644,7 @@ mysql -uroot -p"${MYSQL_PWD}" \
 for sql in $(ls $DEPLOY_DIR/init/*.sql 2>/dev/null | sort); do
     base=$(basename "$sql")
     if [[ "$base" == "99_remove_platform_extra_menus.sql" ]]; then
-        deploy_msg "${BLUE}>>> 清理平台设置多余菜单: $sql${NC}"
+        deploy_msg "${BLUE}>>> 清理平台设置多余菜单并拆分系统设置: $sql${NC}"
     elif [[ "$base" == "100_vcode_full_database_patch.sql" ]]; then
         deploy_msg "${BLUE}>>> 验证码联调数据库补丁: $sql${NC}"
     else
@@ -708,3 +708,7 @@ deploy_user "${GREEN}TK 子台部署完成！${NC}"
 deploy_user ""
 deploy_user "子台管理端（HTTP，请妥善保存入口）:"
 deploy_user "  http://你的服务器IP/${ADMIN_ENTRY}/"
+deploy_user ""
+deploy_user "默认登录账号: admin"
+deploy_user "默认登录密码: admin123"
+deploy_user "${YELLOW}>>> 请登录后立即修改默认密码！${NC}"
