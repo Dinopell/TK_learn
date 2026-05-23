@@ -15,6 +15,7 @@
 # 10. /static、/assets 回退映射到子台目录（修复 publicPath=/ 时 CSS/JS chunk 404）
 # 11. 小页面持久化在宿主机 dynamic-projects（bind mount，docker restart 不丢失）
 # 12. SQL 含 99_remove_platform_extra_menus、100_vcode_full_database_patch（验证码+部署状态库表）
+# 13. 默认静默部署：终端仅显示错误与完成摘要；详细日志见 deploy.log（DEPLOY_VERBOSE=1 可全开）
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -50,13 +51,13 @@ fix_host_nginx_https_redirect() {
     if ! sudo grep -rq 'return 301 https' /etc/nginx/ 2>/dev/null; then
         return 0
     fi
-    echo -e "${YELLOW}>>> 宿主机 Nginx 含「return 301 https」（常见原因：HTTP 自动变 HTTPS）${NC}"
+    deploy_msg "${YELLOW}>>> 宿主机 Nginx 含「return 301 https」（常见原因：HTTP 自动变 HTTPS）${NC}"
     sudo grep -rn 'return 301 https' /etc/nginx/ 2>/dev/null | head -5 || true
     if [ "${FIX_HOST_NGINX:-0}" != "1" ]; then
-        echo -e "${RED}>>> 请带环境变量重新执行: FIX_HOST_NGINX=1 bash deploy-repo.sh${NC}"
+        deploy_err "${RED}>>> 请带环境变量重新执行: FIX_HOST_NGINX=1 bash deploy-repo.sh${NC}"
         exit 1
     fi
-    echo -e "${BLUE}>>> FIX_HOST_NGINX=1：注释宿主机 HTTPS 强制跳转并 reload...${NC}"
+    deploy_msg "${BLUE}>>> FIX_HOST_NGINX=1：注释宿主机 HTTPS 强制跳转并 reload...${NC}"
     while IFS= read -r f; do
         [ -n "$f" ] || continue
         sudo cp -a "$f" "${f}.bak.http-deploy"
@@ -64,7 +65,7 @@ fix_host_nginx_https_redirect() {
     done < <(sudo grep -rl 'return 301 https' /etc/nginx/ 2>/dev/null || true)
     sudo nginx -t
     sudo systemctl reload nginx 2>/dev/null || sudo nginx -s reload
-    echo -e "${GREEN}>>> 宿主机 Nginx 已 reload${NC}"
+    deploy_msg "${GREEN}>>> 宿主机 Nginx 已 reload${NC}"
 }
 
 BLUE='\033[0;34m'
@@ -73,16 +74,50 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${YELLOW}>>> 开始部署 TK 子台系统 [脚本: $DEPLOY_SCRIPT_VER] [分支: $REPO_BRANCH]...${NC}"
+# 默认静默：过程写入 deploy.log；需调试时 DEPLOY_VERBOSE=1 bash deploy-repo.sh
+DEPLOY_VERBOSE="${DEPLOY_VERBOSE:-0}"
+DEPLOY_LOG="${DEPLOY_LOG:-$DEPLOY_DIR/deploy.log}"
+
+deploy_log() {
+    mkdir -p "$(dirname "$DEPLOY_LOG")" 2>/dev/null || true
+    echo -e "$@" >> "$DEPLOY_LOG" 2>/dev/null || true
+}
+
+deploy_msg() {
+    if [ "$DEPLOY_VERBOSE" = "1" ]; then
+        echo -e "$@"
+    else
+        deploy_log "$@"
+    fi
+}
+
+deploy_err() {
+    echo -e "$@" >&2
+}
+
+deploy_user() {
+    echo -e "$@"
+}
+
+run_quiet() {
+    if [ "$DEPLOY_VERBOSE" = "1" ]; then
+        "$@"
+    elif ! "$@" >>"$DEPLOY_LOG" 2>&1; then
+        deploy_err "${RED}>>> 命令执行失败: $*（详见 $DEPLOY_LOG）${NC}"
+        return 1
+    fi
+}
+
+deploy_msg "${YELLOW}>>> 开始部署 TK 子台系统 [脚本: $DEPLOY_SCRIPT_VER] [分支: $REPO_BRANCH]...${NC}"
 
 # =========================================================
 # 0. 环境依赖检查与系统优化
 # =========================================================
-echo -e "${YELLOW}>>> 检查环境依赖...${NC}"
+deploy_msg "${YELLOW}>>> 检查环境依赖...${NC}"
 
 # 自动安装 Docker
 if ! command -v docker &> /dev/null; then
-    echo -e "${BLUE}>>> 正在自动安装 Docker...${NC}"
+    deploy_msg "${BLUE}>>> 正在自动安装 Docker...${NC}"
     curl -fsSL https://get.docker.com | bash -s docker
     sudo systemctl start docker
     sudo systemctl enable docker
@@ -90,7 +125,7 @@ fi
 
 # 自动安装 Git LFS
 if ! command -v git-lfs &> /dev/null; then
-    echo -e "${BLUE}>>> 正在安装 git-lfs...${NC}"
+    deploy_msg "${BLUE}>>> 正在安装 git-lfs...${NC}"
     sudo apt-get update && sudo apt-get install git-lfs -y
     git lfs install
 fi
@@ -101,7 +136,7 @@ sudo sysctl vm.overcommit_memory=1 || true
 # =========================================================
 # 1. 初始化目录
 # =========================================================
-echo -e "${YELLOW}>>> 初始化目录...${NC}"
+deploy_msg "${YELLOW}>>> 初始化目录...${NC}"
 
 # 确保父目录存在
 mkdir -p "$DEPLOY_DIR"
@@ -131,29 +166,29 @@ else
     echo "$ADMIN_ENTRY" > "$ADMIN_ENTRY_FILE"
 fi
 if ! [[ "$ADMIN_ENTRY" =~ ^[a-zA-Z0-9_-]{8,32}$ ]]; then
-    echo -e "${RED}>>> 无效的 ADMIN_ENTRY: $ADMIN_ENTRY${NC}"
+    deploy_err "${RED}>>> 无效的 ADMIN_ENTRY: $ADMIN_ENTRY${NC}"
     exit 1
 fi
-echo -e "${GREEN}>>> 子台管理端入口路径: /${ADMIN_ENTRY}/${NC}"
+deploy_msg "${GREEN}>>> 子台管理端入口路径: /${ADMIN_ENTRY}/${NC}"
 
 # =========================================================
 # 2. 拉取代码 (HTTPS + Branch 逻辑)
 # =========================================================
-echo -e "${YELLOW}>>> 准备源码仓库...${NC}"
+deploy_msg "${YELLOW}>>> 准备源码仓库...${NC}"
 
 # 修复 Git 目录权限问题
 if [ -d "$REPO_DIR" ]; then
-    echo -e "${BLUE}>>> 修复存储库所有权并标记为安全目录...${NC}"
+    deploy_msg "${BLUE}>>> 修复存储库所有权并标记为安全目录...${NC}"
     sudo chown -R $(whoami):$(whoami) "$REPO_DIR"
     git config --global --add safe.directory "$REPO_DIR"
 fi
 
 # 拉取或更新
 if [ ! -d "$REPO_DIR" ]; then
-    echo -e "${BLUE}>>> 首次克隆分支: $REPO_BRANCH ...${NC}"
+    deploy_msg "${BLUE}>>> 首次克隆分支: $REPO_BRANCH ...${NC}"
     git clone -b $REPO_BRANCH $REPO_URL $REPO_DIR
 else
-    echo -e "${BLUE}>>> 强制同步分支: $REPO_BRANCH ...${NC}"
+    deploy_msg "${BLUE}>>> 强制同步分支: $REPO_BRANCH ...${NC}"
     cd $REPO_DIR
     git fetch --all
     # 强制切换并重置到指定的分支
@@ -162,7 +197,7 @@ else
 fi
 
 # 核心修正：强制同步 Git LFS 大文件（防止 JAR 文件只是文本指针）
-echo -e "${BLUE}>>> 正在同步 Git LFS 大文件...${NC}"
+deploy_msg "${BLUE}>>> 正在同步 Git LFS 大文件...${NC}"
 cd $REPO_DIR
 git lfs install --local
 git lfs pull
@@ -170,18 +205,18 @@ cd $DEPLOY_DIR
 
 JAR_FILE="$REPO_DIR/springboot-app.jar"
 if [ ! -f "$JAR_FILE" ]; then
-    echo -e "${RED}>>> 缺少 $JAR_FILE，请确认仓库已包含该文件且 git lfs pull 成功${NC}"
+    deploy_err "${RED}>>> 缺少 $JAR_FILE，请确认仓库已包含该文件且 git lfs pull 成功${NC}"
     exit 1
 fi
 if ! file "$JAR_FILE" | grep -qE 'Java archive|Zip archive'; then
-    echo -e "${RED}>>> springboot-app.jar 不是有效 JAR（可能仍是 LFS 指针），请执行: cd $REPO_DIR && git lfs pull${NC}"
+    deploy_err "${RED}>>> springboot-app.jar 不是有效 JAR（可能仍是 LFS 指针），请执行: cd $REPO_DIR && git lfs pull${NC}"
     exit 1
 fi
 
 # =========================================================
 # 3. SQL 初始化
 # =========================================================
-echo -e "${YELLOW}>>> 准备 SQL 脚本...${NC}"
+deploy_msg "${YELLOW}>>> 准备 SQL 脚本...${NC}"
 
 rm -f $DEPLOY_DIR/init/*.sql || true
 
@@ -205,7 +240,7 @@ done
 # =========================================================
 # 4. 生成 Nginx 配置
 # =========================================================
-echo -e "${YELLOW}>>> 生成 Nginx 配置...${NC}"
+deploy_msg "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
 cat <<EOF > "$DEPLOY_DIR/conf/nginx.conf"
 user nginx;
@@ -349,7 +384,7 @@ EOF
 # =========================================================
 # 5. 生成 Docker Compose
 # =========================================================
-echo -e "${YELLOW}>>> 生成 Docker Compose...${NC}"
+deploy_msg "${YELLOW}>>> 生成 Docker Compose...${NC}"
 
 cat <<EOF > $DEPLOY_DIR/docker-compose.yml
 services:
@@ -436,7 +471,7 @@ EOF
 # =========================================================
 # 6. 小页面 HTTPS 证书与前端资源（子台解压到随机入口目录）
 # =========================================================
-echo -e "${YELLOW}>>> 处理 SSL 证书与前端静态资源...${NC}"
+deploy_msg "${YELLOW}>>> 处理 SSL 证书与前端静态资源...${NC}"
 
 if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
@@ -513,7 +548,7 @@ patch_admin_dist_for_entry() {
 
     # 4) 校验：不应再出现根路径 /static/js|css（排除已带入口前缀）
     if grep -rq '"/static/js/' "$dir" 2>/dev/null || grep -rq '"/static/css/' "$dir" 2>/dev/null; then
-        echo -e "${YELLOW}>>> 警告: 仍有文件引用根路径 /static/，建议按入口路径重新打包 dist.zip${NC}"
+        deploy_msg "${YELLOW}>>> 警告: 仍有文件引用根路径 /static/，建议按入口路径重新打包 dist.zip${NC}"
         grep -rl '"/static/js/' "$dir" 2>/dev/null | head -3 || true
         grep -rl '"/static/css/' "$dir" 2>/dev/null | head -3 || true
     fi
@@ -533,18 +568,18 @@ if [ -f "$REPO_DIR/dist.zip" ]; then
     fi
     rm -rf "$TMP_UNZIP"
     if [ ! -f "$ADMIN_HTML_DIR/index.html" ]; then
-        echo -e "${RED}>>> dist.zip 解压后未找到 index.html，请检查前端打包${NC}"
+        deploy_err "${RED}>>> dist.zip 解压后未找到 index.html，请检查前端打包${NC}"
         exit 1
     fi
     patch_admin_dist_for_entry "$ADMIN_HTML_DIR"
     # 清理历史根目录泄露（旧版直接解压到 html/）
     find "$DEPLOY_DIR/html" -mindepth 1 -maxdepth 1 ! -name "$ADMIN_ENTRY" -exec rm -rf {} + 2>/dev/null || true
     rm -f "$DEPLOY_DIR/html/index.html" 2>/dev/null || true
-    echo -e "${GREEN}>>> 子台前端已部署到 html/${ADMIN_ENTRY}/${NC}"
+    deploy_msg "${GREEN}>>> 子台前端已部署到 html/${ADMIN_ENTRY}/${NC}"
 else
-    echo -e "${YELLOW}>>> 警告: 未找到 $REPO_DIR/dist.zip${NC}"
+    deploy_msg "${YELLOW}>>> 警告: 未找到 $REPO_DIR/dist.zip${NC}"
     if [ ! -f "$ADMIN_HTML_DIR/index.html" ]; then
-        echo -e "${RED}>>> html/${ADMIN_ENTRY}/index.html 不存在，页面将无法正常访问${NC}"
+        deploy_err "${RED}>>> html/${ADMIN_ENTRY}/index.html 不存在，页面将无法正常访问${NC}"
         exit 1
     fi
     patch_admin_dist_for_entry "$ADMIN_HTML_DIR"
@@ -553,7 +588,7 @@ fi
 # =========================================================
 # 7. 启动服务与数据库导入
 # =========================================================
-echo -e "${YELLOW}>>> 修复权限并启动服务...${NC}"
+deploy_msg "${YELLOW}>>> 修复权限并启动服务...${NC}"
 
 chown -R ubuntu:ubuntu $DEPLOY_DIR
 chmod -R 777 $DEPLOY_DIR/redis_data
@@ -563,31 +598,43 @@ chmod -R 755 "$DEPLOY_DIR/backend-data"
 
 cd $DEPLOY_DIR
 
-echo -e "${YELLOW}>>> 检查 80 端口与宿主机 Nginx...${NC}"
-(ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null) | grep ':80 ' || true
+deploy_msg "${YELLOW}>>> 检查 80 端口与宿主机 Nginx...${NC}"
+if [ "$DEPLOY_VERBOSE" = "1" ]; then
+    (ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null) | grep ':80 ' || true
+else
+    { (ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null) | grep ':80 ' || true; } >>"$DEPLOY_LOG" 2>&1
+fi
 fix_host_nginx_https_redirect
 
 # 仅停止容器，不删除宿主机 bind mount 数据（勿用 docker compose down -v）
-docker compose down || true
-docker compose up -d --force-recreate
+run_quiet docker compose down || true
+run_quiet docker compose up -d --force-recreate
 
 # 旧版 JAR 可能写入容器内 /opt/homebrew/var/www，合并到持久化目录（不覆盖已有文件）
-echo -e "${YELLOW}>>> 检查并迁移小页面到持久化目录 ${PROJECTS_DIR} ...${NC}"
-docker exec app-deploy-backend-1 sh -c '
-  for legacy in /opt/homebrew/var/www /var/www/html; do
-    if [ -d "$legacy" ] && [ -n "$(ls -A "$legacy" 2>/dev/null)" ]; then
-      echo "迁移: $legacy -> /dynamic-projects"
-      cp -an "$legacy"/. /dynamic-projects/ 2>/dev/null || true
-    fi
-  done
-  ls -la /dynamic-projects/
-' 2>/dev/null || echo -e "${YELLOW}>>> 后端尚未就绪，跳过迁移（可稍后手动 cp）${NC}"
+deploy_msg "${YELLOW}>>> 检查并迁移小页面到持久化目录 ${PROJECTS_DIR} ...${NC}"
+if [ "$DEPLOY_VERBOSE" = "1" ]; then
+    docker exec app-deploy-backend-1 sh -c '
+      for legacy in /opt/homebrew/var/www /var/www/html; do
+        if [ -d "$legacy" ] && [ -n "$(ls -A "$legacy" 2>/dev/null)" ]; then
+          cp -an "$legacy"/. /dynamic-projects/ 2>/dev/null || true
+        fi
+      done
+    ' 2>/dev/null || deploy_msg "${YELLOW}>>> 后端尚未就绪，跳过迁移${NC}"
+else
+    docker exec app-deploy-backend-1 sh -c '
+      for legacy in /opt/homebrew/var/www /var/www/html; do
+        if [ -d "$legacy" ] && [ -n "$(ls -A "$legacy" 2>/dev/null)" ]; then
+          cp -an "$legacy"/. /dynamic-projects/ 2>/dev/null || true
+        fi
+      done
+    ' >>"$DEPLOY_LOG" 2>&1 || deploy_msg "${YELLOW}>>> 后端尚未就绪，跳过迁移${NC}"
+fi
 
-echo -e "${YELLOW}>>> 校验 Nginx 配置...${NC}"
+deploy_msg "${YELLOW}>>> 校验 Nginx 配置...${NC}"
 sleep 3
-docker exec app-deploy-frontend-1 nginx -t
+run_quiet docker exec app-deploy-frontend-1 nginx -t
 
-echo -e "${YELLOW}>>> 等待 MySQL 启动并导入 SQL...${NC}"
+deploy_msg "${YELLOW}>>> 等待 MySQL 启动并导入 SQL...${NC}"
 sleep 20
 
 docker exec -i app-deploy-mysql-1 \
@@ -597,11 +644,11 @@ mysql -uroot -p"${MYSQL_PWD}" \
 for sql in $(ls $DEPLOY_DIR/init/*.sql 2>/dev/null | sort); do
     base=$(basename "$sql")
     if [[ "$base" == "99_remove_platform_extra_menus.sql" ]]; then
-        echo -e "${BLUE}>>> 清理平台设置多余菜单: $sql${NC}"
+        deploy_msg "${BLUE}>>> 清理平台设置多余菜单: $sql${NC}"
     elif [[ "$base" == "100_vcode_full_database_patch.sql" ]]; then
-        echo -e "${BLUE}>>> 验证码联调数据库补丁: $sql${NC}"
+        deploy_msg "${BLUE}>>> 验证码联调数据库补丁: $sql${NC}"
     else
-        echo -e "${BLUE}>>> 执行: $sql${NC}"
+        deploy_msg "${BLUE}>>> 执行: $sql${NC}"
     fi
     docker exec -i app-deploy-mysql-1 \
     mysql -uroot -p"${MYSQL_PWD}" --default-character-set=utf8mb4 tk-admin < "$sql" || true
@@ -610,19 +657,19 @@ done
 # =========================================================
 # 8. 健康检查
 # =========================================================
-echo -e "${YELLOW}>>> 健康检查...${NC}"
+deploy_msg "${YELLOW}>>> 健康检查...${NC}"
 
 ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/ || echo "000")
 ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1/${ADMIN_ENTRY}/" || echo "000")
 if [ "$ROOT_CODE" = "404" ]; then
-    echo -e "${GREEN}>>> 根路径 HTTP 已禁止访问 (404)${NC}"
+    deploy_msg "${GREEN}>>> 根路径 HTTP 已禁止访问 (404)${NC}"
 else
-    echo -e "${YELLOW}>>> 根路径 HTTP 返回 $ROOT_CODE（期望 404）${NC}"
+    deploy_msg "${YELLOW}>>> 根路径 HTTP 返回 $ROOT_CODE（期望 404）${NC}"
 fi
 if [ "$ADMIN_CODE" = "200" ]; then
-    echo -e "${GREEN}>>> 子台管理端 HTTP /${ADMIN_ENTRY}/ 返回 200 OK${NC}"
+    deploy_msg "${GREEN}>>> 子台管理端 HTTP /${ADMIN_ENTRY}/ 返回 200 OK${NC}"
 else
-    echo -e "${YELLOW}>>> 子台入口返回 $ADMIN_CODE（若刚启动可稍等: curl -I http://127.0.0.1/${ADMIN_ENTRY}/）${NC}"
+    deploy_msg "${YELLOW}>>> 子台入口返回 $ADMIN_CODE（若刚启动可稍等: curl -I http://127.0.0.1/${ADMIN_ENTRY}/）${NC}"
 fi
 
 SAMPLE_PROJECT=$(find "$PROJECTS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null | head -1)
@@ -631,63 +678,33 @@ if [ -n "$SAMPLE_PROJECT" ]; then
     HTTP_PAGE_LOC=$(curl -sI "http://127.0.0.1/${SAMPLE_NAME}/" 2>/dev/null | tr -d '\r' | grep -i '^Location:' | head -1 || true)
     HTTPS_PAGE_CODE=$(curl -sk -o /dev/null -w "%{http_code}" "https://127.0.0.1/${SAMPLE_NAME}/" 2>/dev/null || echo "000")
     if echo "$HTTP_PAGE_LOC" | grep -qi 'https://'; then
-        echo -e "${GREEN}>>> 小页面 HTTP→HTTPS 跳转正常: /${SAMPLE_NAME}/ → $HTTP_PAGE_LOC${NC}"
+        deploy_msg "${GREEN}>>> 小页面 HTTP→HTTPS 跳转正常: /${SAMPLE_NAME}/ → $HTTP_PAGE_LOC${NC}"
     else
-        echo -e "${YELLOW}>>> 小页面 HTTP 未跳 HTTPS（期望 301）: $HTTP_PAGE_LOC${NC}"
+        deploy_msg "${YELLOW}>>> 小页面 HTTP 未跳 HTTPS（期望 301）: $HTTP_PAGE_LOC${NC}"
     fi
     if [ "$HTTPS_PAGE_CODE" = "200" ]; then
-        echo -e "${GREEN}>>> 小页面 HTTPS /${SAMPLE_NAME}/ 返回 200 OK${NC}"
+        deploy_msg "${GREEN}>>> 小页面 HTTPS /${SAMPLE_NAME}/ 返回 200 OK${NC}"
     else
-        echo -e "${YELLOW}>>> 小页面 HTTPS 返回 $HTTPS_PAGE_CODE（可稍后: curl -k -I https://127.0.0.1/${SAMPLE_NAME}/）${NC}"
+        deploy_msg "${YELLOW}>>> 小页面 HTTPS 返回 $HTTPS_PAGE_CODE（可稍后: curl -k -I https://127.0.0.1/${SAMPLE_NAME}/）${NC}"
     fi
 fi
 
 if docker logs app-deploy-backend-1 2>&1 | tail -50 | grep -q "若依启动成功"; then
-    echo -e "${GREEN}>>> 后端若依已启动${NC}"
+    deploy_msg "${GREEN}>>> 后端若依已启动${NC}"
 else
-    echo -e "${YELLOW}>>> 后端可能仍在启动，查看日志: docker logs -f app-deploy-backend-1${NC}"
+    deploy_msg "${YELLOW}>>> 后端可能仍在启动，查看日志: docker logs -f app-deploy-backend-1${NC}"
 fi
 
 if [ -f "$DEPLOY_DIR/backend-data/license/device.id" ]; then
-    echo -e "${GREEN}>>> 设备指纹已持久化: backend-data/license/device.id${NC}"
+    deploy_msg "${GREEN}>>> 设备指纹已持久化: backend-data/license/device.id${NC}"
 else
-    echo -e "${YELLOW}>>> 首次部署尚未生成 device.id，激活后将写入 backend-data/license/${NC}"
+    deploy_msg "${YELLOW}>>> 首次部署尚未生成 device.id，激活后将写入 backend-data/license/${NC}"
 fi
 
 # =========================================================
-# 9. 完成
+# 9. 完成（仅向用户展示必要信息）
 # =========================================================
-echo -e "${GREEN}"
-echo "===================================================="
-echo "TK 子台部署完成！"
-echo "分支: $REPO_BRANCH"
-echo "总台对接: $MASTER_URL"
-echo ""
-echo "子台管理端（HTTP，请妥善保存入口）:"
-echo "  http://你的服务器IP/${ADMIN_ENTRY}/"
-echo "  入口记录: $ADMIN_ENTRY_FILE"
-echo "小页面（HTTPS，持久化，重启 Docker 不丢失）:"
-echo "  宿主机目录: $PROJECTS_DIR/<frontendEntry>/"
-echo "  访问地址:   https://你的服务器IP/<frontendEntry>/"
-echo "  示例:       https://你的服务器IP/asset74/visit"
-echo "  说明: HTTP 访问 /项目名/ 会自动 301 到 HTTPS"
-echo "  注意: 请勿删除 $PROJECTS_DIR；勿使用 docker compose down -v"
-echo ""
-echo "上传后自检:"
-echo "  ls -la $PROJECTS_DIR/"
-echo "  docker exec app-deploy-backend-1 ls -la /dynamic-projects/"
-PROJECT_COUNT=$(find "$PROJECTS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null | wc -l)
-echo "  当前小页面项目数: $PROJECT_COUNT"
-echo ""
-echo "更换随机入口: REGENERATE_ADMIN_ENTRY=1 bash deploy-repo.sh"
-echo ""
-echo "激活指纹（重启后须保留）:"
-echo "  $DEPLOY_DIR/backend-data/license/device.id"
-echo ""
-echo "常用命令:"
-echo "  docker ps"
-echo "  docker logs -f app-deploy-backend-1"
-echo "  docker logs -f app-deploy-frontend-1"
-echo "===================================================="
-echo -e "${NC}"
-docker ps
+deploy_user "${GREEN}TK 子台部署完成！${NC}"
+deploy_user ""
+deploy_user "子台管理端（HTTP，请妥善保存入口）:"
+deploy_user "  http://你的服务器IP/${ADMIN_ENTRY}/"
