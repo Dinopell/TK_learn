@@ -16,6 +16,7 @@
 # 11. 小页面持久化在宿主机 dynamic-projects（bind mount，docker restart 不丢失）
 # 12. SQL 含 99_remove_platform_extra_menus、100_vcode_full_database_patch（验证码+部署状态库表）
 # 13. 默认静默部署：终端仅显示错误与完成摘要；详细日志见 deploy.log（DEPLOY_VERBOSE=1 可全开）
+# 14. 总台地址仅通过 deploy/master.endpoint.pkg（RSA 签名）下发，后端验签后注入（禁止 MASTER_URL 等明文环境变量）
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -33,12 +34,8 @@ CONTAINER_PROJECTS_DIR="/dynamic-projects"
 # 3. 数据库密码
 MYSQL_PWD="MAmLvxD#uGD1UbSR"
 
-# 4. 总台（主站）对接配置
-MASTER_URL="${MASTER_URL:-https://43.165.173.66/prod-api}"
-MASTER_API_KEY="${MASTER_API_KEY:-ruoyi-master-key}"
-MASTER_SERVER_URL="${MASTER_SERVER_URL:-$MASTER_URL}"
-MASTER_SSL_INSECURE="${MASTER_SSL_INSECURE:-true}"
-DEPLOY_SCRIPT_VER="20260519-split-http-https"
+# 4. 总台对接：仅允许 RSA 签名包 MASTER_ENDPOINT_PKG（禁止部署用户设置 MASTER_URL 等明文变量）
+DEPLOY_SCRIPT_VER="20260524-master-endpoint-rsa"
 # =========================================================
 
 set -e
@@ -212,6 +209,32 @@ if ! file "$JAR_FILE" | grep -qE 'Java archive|Zip archive'; then
     deploy_err "${RED}>>> springboot-app.jar 不是有效 JAR（可能仍是 LFS 指针），请执行: cd $REPO_DIR && git lfs pull${NC}"
     exit 1
 fi
+
+# 总台对接：禁止部署用户通过环境变量指定明文总台；仅使用仓库内密文包
+for _forbidden in MASTER_URL MASTER_API_KEY MASTER_SERVER_URL MASTER_SSL_INSECURE; do
+    if [ -n "${!_forbidden:-}" ]; then
+        deploy_err "${RED}>>> 禁止设置 $_forbidden，总台地址由运维加密包统一下发${NC}"
+        exit 1
+    fi
+done
+MASTER_PKG_FILE="$REPO_DIR/deploy/master.endpoint.pkg"
+if [ ! -f "$MASTER_PKG_FILE" ]; then
+    deploy_err "${RED}>>> 缺少总台签名包 $MASTER_PKG_FILE，请使用最新 feature 分支或联系运维${NC}"
+    exit 1
+fi
+MASTER_ENDPOINT_PKG="$(tr -d '\n\r\t ' < "$MASTER_PKG_FILE")"
+case "$MASTER_ENDPOINT_PKG" in
+    v2.*.*) ;;
+    *)
+        deploy_err "${RED}>>> 总台签名包格式无效（期望 v2.<payload>.<signature>）: $MASTER_PKG_FILE${NC}"
+        exit 1
+        ;;
+esac
+if [ -z "$MASTER_ENDPOINT_PKG" ]; then
+    deploy_err "${RED}>>> 总台签名包为空: $MASTER_PKG_FILE${NC}"
+    exit 1
+fi
+deploy_msg "${GREEN}>>> 已加载总台 RSA 签名配置包${NC}"
 
 # =========================================================
 # 3. SQL 初始化
@@ -436,10 +459,7 @@ services:
       - DB_PASSWORD=${MYSQL_PWD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MASTER_URL=${MASTER_URL}
-      - MASTER_API_KEY=${MASTER_API_KEY}
-      - MASTER_SERVER_URL=${MASTER_SERVER_URL}
-      - MASTER_SSL_INSECURE=${MASTER_SSL_INSECURE}
+      - MASTER_ENDPOINT_PKG=${MASTER_ENDPOINT_PKG}
     command:
       - java
       - -Xms512m

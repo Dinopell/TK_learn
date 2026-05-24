@@ -1,3 +1,5 @@
+> **运维**：总台 RSA 签名、换台、打包 JAR 见 [deploy/README.md](deploy/README.md)
+
 🔧 第一步：登录你的 Linux 服务器
 使用 Xshell、FinalShell、PuTTY 或 云厂商的 Web 控制台（如阿里云、腾讯云）登录服务器。
 登录后你会看到类似这样的提示符（以 $ 结尾）：
