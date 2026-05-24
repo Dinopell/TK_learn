@@ -11,7 +11,7 @@
 ### 1. 生成密钥对（若尚未生成）
 
 ```bash
-cd TK_learn
+cd BS
 mkdir -p scripts/keys
 openssl genrsa -out scripts/keys/master-sign-private.pem 2048
 openssl rsa -in scripts/keys/master-sign-private.pem -pubout \
@@ -38,9 +38,9 @@ cp ruoyi-admin/target/ruoyi-admin.jar ../../TK_learn/springboot-app.jar
 在**运维本机**（勿在子台服务器输入明文）：
 
 ```bash
-cd TK_learn
-export MASTER_PLAIN_URL='https://你的总台/prod-api'
-export MASTER_PLAIN_API_KEY='你的API密钥'
+cd BS
+export MASTER_PLAIN_URL='https://43.165.173.66/prod-api'
+export MASTER_PLAIN_API_KEY='ruoyi-master-key'
 export MASTER_PLAIN_SSL_INSECURE=1   # 总台为自签 HTTPS 时
 # 可选：默认 365 天（1 年）；10 年用 export MASTER_SIGN_DAYS=3650
 export MASTER_SIGN_DAYS=365
