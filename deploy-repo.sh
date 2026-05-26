@@ -14,7 +14,7 @@
 # 9. 子台管理端随机入口路径（禁止 IP 根路径直接访问）
 # 10. /static、/assets 回退映射到子台目录（修复 publicPath=/ 时 CSS/JS chunk 404）
 # 11. 小页面持久化在宿主机 dynamic-projects（bind mount，docker restart 不丢失）
-# 12. SQL 含 99_remove_platform_extra_menus、100_vcode_full_database_patch（验证码+部署状态库表）
+# 12. SQL 含 99_remove_platform_extra_menus、100_vcode_full_database_patch、101_clean_sub_platform_seed（清理部门/市场/黑名单/日志脏数据）
 # 13. 默认静默部署：终端仅显示错误与完成摘要；详细日志见 deploy.log（DEPLOY_VERBOSE=1 可全开）
 # 14. 总台地址仅通过 deploy/master.endpoint.pkg（RSA 签名）下发，后端验签后注入（禁止 MASTER_URL 等明文环境变量）
 # =================================================================
@@ -667,6 +667,8 @@ for sql in $(ls $DEPLOY_DIR/init/*.sql 2>/dev/null | sort); do
         deploy_msg "${BLUE}>>> 清理平台设置多余菜单并拆分系统设置: $sql${NC}"
     elif [[ "$base" == "100_vcode_full_database_patch.sql" ]]; then
         deploy_msg "${BLUE}>>> 验证码联调数据库补丁: $sql${NC}"
+    elif [[ "$base" == "101_clean_sub_platform_seed.sql" ]]; then
+        deploy_msg "${BLUE}>>> 清理子台种子脏数据: $sql${NC}"
     else
         deploy_msg "${BLUE}>>> 执行: $sql${NC}"
     fi
