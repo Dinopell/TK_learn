@@ -428,13 +428,13 @@ fi
 # =========================================================
 deploy_msg "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
-# 已有 Let's Encrypt 证书时用 live 路径；否则用 conf/ssl 自签名，勿写入 live/（避免 certbot 报 live directory exists）
-if [ -f "$DEPLOY_DIR/letsencrypt/renewal/tk-substation.conf" ]; then
+# SSL：须证书文件真实存在（仅有 renewal 配置但无 live 文件会导致 Nginx 无法启动）
+NGINX_SSL_CERT="/etc/nginx/ssl/server.crt"
+NGINX_SSL_KEY="/etc/nginx/ssl/server.key"
+if [ -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem" ] \
+    && [ -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem" ]; then
     NGINX_SSL_CERT="/etc/letsencrypt/live/tk-substation/fullchain.pem"
     NGINX_SSL_KEY="/etc/letsencrypt/live/tk-substation/privkey.pem"
-else
-    NGINX_SSL_CERT="/etc/nginx/ssl/server.crt"
-    NGINX_SSL_KEY="/etc/nginx/ssl/server.key"
 fi
 
 cat <<EOF > "$DEPLOY_DIR/conf/nginx.conf"
@@ -542,18 +542,13 @@ http {
         # 路径模式（域名/后缀，由后端生成 asset-routes-locations.conf）
         include /etc/nginx/nginx-dynamic/asset-routes-locations.conf;
 
-        # 兜底：IP 或未匹配域名时，按 URL /{随机后缀}/ 读取 /dynamic-projects/{后缀}/
+        # 兜底：IP 或未匹配域名时，/dynamic-projects/{随机后缀}/（用 root+try_files，避免 alias 导致配置失败）
         location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]{2,32})\$ {
             return 301 \$uri/;
         }
         location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]{2,32})(/.*)?\$ {
-            alias /dynamic-projects/\$1\$2;
-            index index.html;
-            error_page 404 = @dynamic_entry_spa;
-        }
-        location @dynamic_entry_spa {
-            rewrite ^/([a-zA-Z0-9_-]{2,32})(/.*)?\$ /\$1/index.html break;
             root /dynamic-projects;
+            try_files /\$1\$2 /\$1\$2/ /\$1/index.html =404;
         }
 
         # 点号模式（如 entry.domain.com/）：map 命中后从 /dynamic-projects/{后缀}/ 取站
@@ -561,16 +556,9 @@ http {
             if (\$dynamic_asset_root = "") {
                 return 404;
             }
-            alias \$dynamic_asset_root/;
-            index index.html;
-            error_page 404 = @asset_dot_spa;
-        }
-        location @asset_dot_spa {
-            if (\$dynamic_asset_root = "") {
-                return 404;
-            }
-            rewrite ^ /index.html break;
             root \$dynamic_asset_root;
+            index index.html;
+            try_files \$uri \$uri/ /index.html =404;
         }
 
         location ^~ /prod-api/ {
@@ -851,6 +839,27 @@ else
     patch_admin_dist_for_entry "$ADMIN_HTML_DIR"
 fi
 
+# 启动前用临时容器校验 Nginx（避免 frontend 起不来后无法 exec）
+validate_nginx_config_before_up() {
+    deploy_msg "${YELLOW}>>> 预检 Nginx 配置（启动容器前）...${NC}"
+    if docker run --rm \
+        -v "$DEPLOY_DIR/conf/nginx.conf:/etc/nginx/nginx.conf:ro" \
+        -v "$DEPLOY_DIR/html:/usr/share/nginx/html:ro" \
+        -v "$DEPLOY_DIR/dynamic-projects:/dynamic-projects:ro" \
+        -v "$DEPLOY_DIR/backend-data/nginx-dynamic:/etc/nginx/nginx-dynamic:ro" \
+        -v "$DEPLOY_DIR/conf/ssl:/etc/nginx/ssl:ro" \
+        -v "$DEPLOY_DIR/certbot-www:/var/www/certbot:ro" \
+        -v "$DEPLOY_DIR/letsencrypt:/etc/letsencrypt:ro" \
+        nginx:stable-alpine nginx -t >>"$DEPLOY_LOG" 2>&1; then
+        deploy_msg "${GREEN}>>> Nginx 配置预检通过${NC}"
+        return 0
+    fi
+    deploy_err "${RED}>>> Nginx 配置无效，frontend 无法启动。最近输出：${NC}"
+    tail -30 "$DEPLOY_LOG" >&2 || true
+    deploy_err "${RED}>>> 常见原因：SSL 证书路径不存在、include 的动态路由文件语法错误${NC}"
+    return 1
+}
+
 # =========================================================
 # 7. 启动服务与数据库导入
 # =========================================================
@@ -871,6 +880,10 @@ else
     { (ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null) | grep ':80 ' || true; } >>"$DEPLOY_LOG" 2>&1
 fi
 fix_host_nginx_https_redirect
+
+if ! validate_nginx_config_before_up; then
+    exit 1
+fi
 
 # 仅停止容器，不删除宿主机 bind mount 数据（勿用 docker compose down -v）
 run_quiet docker compose down || true
@@ -907,7 +920,11 @@ if ! docker ps --format '{{.Names}}' | grep -q '^app-deploy-frontend-1$'; then
     exit 1
 fi
 
-run_quiet docker exec app-deploy-frontend-1 nginx -t
+if ! docker exec app-deploy-frontend-1 nginx -t >>"$DEPLOY_LOG" 2>&1; then
+    deploy_err "${RED}>>> 运行中 Nginx 配置校验失败，容器日志：${NC}"
+    docker logs --tail 40 app-deploy-frontend-1 2>&1 | tee -a "$DEPLOY_LOG" >&2 || true
+    exit 1
+fi
 
 deploy_msg "${YELLOW}>>> 等待 MySQL 就绪并导入 SQL...${NC}"
 mysql_wait_ready
