@@ -437,7 +437,8 @@ if [ -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem" ] \
     NGINX_SSL_KEY="/etc/letsencrypt/live/tk-substation/privkey.pem"
 fi
 
-cat <<EOF > "$DEPLOY_DIR/conf/nginx.conf"
+# 使用引号 heredoc，避免 bash 把 $+、{2,32} 等破坏 Nginx 正则
+cat <<'NGINXEOF' > "$DEPLOY_DIR/conf/nginx.conf"
 user nginx;
 worker_processes auto;
 
@@ -452,7 +453,7 @@ http {
     client_max_body_size 500m;
 
     # SockJS / STOMP WebSocket 升级（缺此项时 ws://.../websocket 失败，仅能 xhr 轮询）
-    map \$http_upgrade \$connection_upgrade {
+    map $http_upgrade $connection_upgrade {
         default upgrade;
         ''      close;
     }
@@ -477,12 +478,12 @@ http {
         }
 
         location ^~ /static/ {
-            alias /usr/share/nginx/html/${ADMIN_ENTRY}/static/;
+            alias /usr/share/nginx/html/__ADMIN_ENTRY__/static/;
             expires 7d;
             add_header Cache-Control "public";
         }
         location ^~ /assets/ {
-            alias /usr/share/nginx/html/${ADMIN_ENTRY}/assets/;
+            alias /usr/share/nginx/html/__ADMIN_ENTRY__/assets/;
             expires 7d;
             add_header Cache-Control "public";
         }
@@ -490,12 +491,12 @@ http {
         location ^~ /prod-api/ {
             proxy_pass http://backend:8080/;
             proxy_http_version 1.1;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-            proxy_set_header Upgrade \$http_upgrade;
-            proxy_set_header Connection \$connection_upgrade;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
             proxy_buffering off;
             proxy_connect_timeout 60s;
             proxy_send_timeout 3600s;
@@ -503,27 +504,27 @@ http {
         }
 
         location = /index {
-            return 302 /${ADMIN_ENTRY}/index;
+            return 302 /__ADMIN_ENTRY__/index;
         }
         location = /login {
-            return 302 /${ADMIN_ENTRY}/login;
+            return 302 /__ADMIN_ENTRY__/login;
         }
 
-        location = /${ADMIN_ENTRY} {
-            return 301 /${ADMIN_ENTRY}/;
+        location = /__ADMIN_ENTRY__ {
+            return 301 /__ADMIN_ENTRY__/;
         }
-        location ^~ /${ADMIN_ENTRY}/ {
+        location ^~ /__ADMIN_ENTRY__/ {
             root /usr/share/nginx/html;
             index index.html;
-            try_files \$uri \$uri/ /${ADMIN_ENTRY}/index.html;
+            try_files $uri $uri/ /__ADMIN_ENTRY__/index.html;
         }
 
         # 小页面仅 HTTPS：HTTP 访问 /项目名/ 时跳到 443
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
-            return 301 https://\$host\$uri/;
+        location ~ ^/(?!__ADMIN_ENTRY__$)(?!__ADMIN_ENTRY__/)([a-zA-Z0-9_-]+)$ {
+            return 301 https://$host$uri/;
         }
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)(/.*)?\$ {
-            return 301 https://\$host\$request_uri;
+        location ~ ^/(?!__ADMIN_ENTRY__$)(?!__ADMIN_ENTRY__/)([a-zA-Z0-9_-]+)(/.*)?$ {
+            return 301 https://$host$request_uri;
         }
     }
 
@@ -531,8 +532,8 @@ http {
     server {
         listen 443 ssl;
         http2 on;
-        ssl_certificate ${NGINX_SSL_CERT};
-        ssl_certificate_key ${NGINX_SSL_KEY};
+        ssl_certificate __NGINX_SSL_CERT__;
+        ssl_certificate_key __NGINX_SSL_KEY__;
 
         # Let's Encrypt HTTP-01 验证（HTTPS 也保留，防止验证器重定向）
         location /.well-known/acme-challenge/ {
@@ -543,33 +544,33 @@ http {
         include /etc/nginx/nginx-dynamic/asset-routes-locations.conf;
 
         # 兜底：IP 或未匹配域名时，/dynamic-projects/{随机后缀}/（用 root+try_files，避免 alias 导致配置失败）
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]\{2,32\})\$ {
-            return 301 \$uri/;
+        location ~ ^/(?!__ADMIN_ENTRY__$)(?!__ADMIN_ENTRY__/)([a-zA-Z0-9_-]{2,32})$ {
+            return 301 $uri/;
         }
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]\{2,32\})(/.*)?\$ {
+        location ~ ^/(?!__ADMIN_ENTRY__$)(?!__ADMIN_ENTRY__/)([a-zA-Z0-9_-]{2,32})(/.*)?$ {
             root /dynamic-projects;
-            try_files /\$1\$2 /\$1\$2/ /\$1/index.html =404;
+            try_files /$1$2 /$1$2/ /$1/index.html =404;
         }
 
         # 点号模式（如 entry.domain.com/）：map 命中后从 /dynamic-projects/{后缀}/ 取站
         location / {
-            if (\$dynamic_asset_root = "") {
+            if ($dynamic_asset_root = "") {
                 return 404;
             }
-            root \$dynamic_asset_root;
+            root $dynamic_asset_root;
             index index.html;
-            try_files \$uri \$uri/ /index.html =404;
+            try_files $uri $uri/ /index.html =404;
         }
 
         location ^~ /prod-api/ {
             proxy_pass http://backend:8080/;
             proxy_http_version 1.1;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-            proxy_set_header Upgrade \$http_upgrade;
-            proxy_set_header Connection \$connection_upgrade;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
             proxy_buffering off;
             proxy_connect_timeout 60s;
             proxy_send_timeout 3600s;
@@ -577,21 +578,29 @@ http {
         }
 
         # 管理端只用 HTTP，HTTPS 误访时跳回 80
-        location = /${ADMIN_ENTRY} {
-            return 302 http://\$host/${ADMIN_ENTRY}/;
+        location = /__ADMIN_ENTRY__ {
+            return 302 http://$host/__ADMIN_ENTRY__/;
         }
-        location ^~ /${ADMIN_ENTRY}/ {
-            return 302 http://\$host\$request_uri;
+        location ^~ /__ADMIN_ENTRY__/ {
+            return 302 http://$host$request_uri;
         }
         location ^~ /static/ {
-            return 302 http://\$host\$request_uri;
+            return 302 http://$host$request_uri;
         }
         location ^~ /assets/ {
-            return 302 http://\$host\$request_uri;
+            return 302 http://$host$request_uri;
         }
     }
 }
-EOF
+NGINXEOF
+sed -i "s|__ADMIN_ENTRY__|${ADMIN_ENTRY}|g" "$DEPLOY_DIR/conf/nginx.conf"
+sed -i "s|__NGINX_SSL_CERT__|${NGINX_SSL_CERT}|g" "$DEPLOY_DIR/conf/nginx.conf"
+sed -i "s|__NGINX_SSL_KEY__|${NGINX_SSL_KEY}|g" "$DEPLOY_DIR/conf/nginx.conf"
+if grep -qE '^[[:space:]]*2,32\}\$' "$DEPLOY_DIR/conf/nginx.conf" 2>/dev/null; then
+    deploy_err "${RED}>>> nginx.conf 生成异常（含断行 2,32}\$），请确认 deploy-repo.sh 含 NGINXEOF 且为最新版${NC}"
+    sed -n '100,115p' "$DEPLOY_DIR/conf/nginx.conf" >&2 || true
+    exit 1
+fi
 
 # =========================================================
 # 5. 构建带 certbot 的 backend 镜像（容器内申请证书需要）
