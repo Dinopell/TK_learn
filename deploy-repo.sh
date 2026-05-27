@@ -804,6 +804,15 @@ fi
 
 deploy_msg "${YELLOW}>>> 校验 Nginx 配置...${NC}"
 sleep 3
+
+# 若 nginx 容器因配置错误已停止，先打印日志以便排查
+if ! docker ps --format '{{.Names}}' | grep -q '^app-deploy-frontend-1$'; then
+    deploy_err "${RED}>>> Nginx 容器已停止，最近日志如下：${NC}"
+    docker logs --tail 30 app-deploy-frontend-1 2>&1 || true
+    deploy_err "${RED}>>> 请检查上方日志修复配置后重新执行${NC}"
+    exit 1
+fi
+
 run_quiet docker exec app-deploy-frontend-1 nginx -t
 
 deploy_msg "${YELLOW}>>> 等待 MySQL 就绪并导入 SQL...${NC}"
