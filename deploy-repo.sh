@@ -369,6 +369,9 @@ http {
         ''      close;
     }
 
+    # 由子台后端 AssetRouteNginxService 写入（域名+后缀 → /dynamic-projects/asset_{id}）
+    include /etc/nginx/nginx-dynamic/asset-routes-map.conf;
+
     # ---------- 80：子台管理端 HTTP（勿对小页面整站跳 HTTPS，避免管理端被带上）----------
     server {
         listen 80;
@@ -438,8 +441,21 @@ http {
         ssl_certificate /etc/nginx/ssl/server.crt;
         ssl_certificate_key /etc/nginx/ssl/server.key;
 
-        location = / {
-            return 404;
+        # 点号模式（如 qincao.hk.cn.jp/）：map 命中后从 asset_{id} 目录取站
+        location / {
+            if (\$dynamic_asset_root = "") {
+                return 404;
+            }
+            alias \$dynamic_asset_root/;
+            index index.html;
+            error_page 404 = @asset_dot_spa;
+        }
+        location @asset_dot_spa {
+            if (\$dynamic_asset_root = "") {
+                return 404;
+            }
+            rewrite ^ /index.html break;
+            alias \$dynamic_asset_root/;
         }
 
         location ^~ /prod-api/ {
@@ -567,10 +583,22 @@ services:
     volumes:
       - ./html:/usr/share/nginx/html
       - ./dynamic-projects:/dynamic-projects
+      - ./backend-data/nginx-dynamic:/etc/nginx/nginx-dynamic:ro
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./conf/ssl:/etc/nginx/ssl:ro
     restart: always
 EOF
+
+mkdir -p "$DEPLOY_DIR/backend-data/nginx-dynamic"
+# 占位 map，避免首次部署因 include 缺失导致 nginx -t 失败
+if [ ! -f "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-map.conf" ]; then
+    cat > "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-map.conf" <<'MAP_EOF'
+# placeholder until backend refreshAssetRoutes()
+map "$host|$uri" $dynamic_asset_root {
+    default "";
+}
+MAP_EOF
+fi
 
 # =========================================================
 # 6. 小页面 HTTPS 证书与前端资源（子台解压到随机入口目录）
@@ -787,6 +815,14 @@ if compgen -G "$DEPLOY_DIR/migrations/*.sql" >/dev/null; then
     fi
 else
     deploy_msg "${BLUE}>>> 无 sql/migrations 增量脚本${NC}"
+fi
+
+deploy_msg "${YELLOW}>>> 重载 Nginx（应用资产域名 map）...${NC}"
+if docker exec app-deploy-frontend-1 nginx -t >>"$DEPLOY_LOG" 2>&1; then
+    run_quiet docker exec app-deploy-frontend-1 nginx -s reload
+    deploy_msg "${GREEN}>>> Nginx 已 reload${NC}"
+else
+    deploy_err "${YELLOW}>>> Nginx 配置校验失败，请检查 backend-data/nginx-dynamic/asset-routes-map.conf${NC}"
 fi
 
 # =========================================================
