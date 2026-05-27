@@ -272,8 +272,7 @@ done
 mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
 mkdir -p "$PROJECTS_DIR"
 
-# 为 Let's Encrypt 证书预留固定路径（由第 6 步复制自签名证书占位）
-mkdir -p "$DEPLOY_DIR/letsencrypt/live/tk-substation"
+# letsencrypt 由 certbot 管理；勿预建 live/tk-substation（会与 certbot 冲突）
 # 标记持久化目录（部署脚本不会清空 dynamic-projects）
 touch "$PROJECTS_DIR/.persistent_on_host"
 mkdir -p "$DEPLOY_DIR/conf"
@@ -429,6 +428,15 @@ fi
 # =========================================================
 deploy_msg "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
+# 已有 Let's Encrypt 证书时用 live 路径；否则用 conf/ssl 自签名，勿写入 live/（避免 certbot 报 live directory exists）
+if [ -f "$DEPLOY_DIR/letsencrypt/renewal/tk-substation.conf" ]; then
+    NGINX_SSL_CERT="/etc/letsencrypt/live/tk-substation/fullchain.pem"
+    NGINX_SSL_KEY="/etc/letsencrypt/live/tk-substation/privkey.pem"
+else
+    NGINX_SSL_CERT="/etc/nginx/ssl/server.crt"
+    NGINX_SSL_KEY="/etc/nginx/ssl/server.key"
+fi
+
 cat <<EOF > "$DEPLOY_DIR/conf/nginx.conf"
 user nginx;
 worker_processes auto;
@@ -523,8 +531,8 @@ http {
     server {
         listen 443 ssl;
         http2 on;
-        ssl_certificate /etc/letsencrypt/live/tk-substation/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/tk-substation/privkey.pem;
+        ssl_certificate ${NGINX_SSL_CERT};
+        ssl_certificate_key ${NGINX_SSL_KEY};
 
         # Let's Encrypt HTTP-01 验证（HTTPS 也保留，防止验证器重定向）
         location /.well-known/acme-challenge/ {
@@ -721,14 +729,15 @@ if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
     -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
 fi
 
-# 首次部署时复制自签名证书到 letsencrypt 固定路径，避免 nginx 因证书路径不存在而启动失败
-#（必须使用 cp 而非软链接：宿主机绝对路径软链接在容器内无法解析）
-mkdir -p "$DEPLOY_DIR/letsencrypt/live/tk-substation"
-# 若之前部署遗留了软链接/硬链接，先删除避免 cp 报 "same file"
-rm -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem"
-rm -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem"
-cp -f "$DEPLOY_DIR/conf/ssl/server.crt" "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem"
-cp -f "$DEPLOY_DIR/conf/ssl/server.key" "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem"
+# 勿将自签名证书写入 /etc/letsencrypt/live/tk-substation（会导致 certbot: live directory exists）
+# 443 在未签发 LE 前使用 /etc/nginx/ssl；签发后 renewal 存在，下次生成 nginx 会自动切到 letsencrypt 路径
+if [ ! -f "$DEPLOY_DIR/letsencrypt/renewal/tk-substation.conf" ]; then
+    if [ -d "$DEPLOY_DIR/letsencrypt/live/tk-substation" ] \
+        && [ ! -L "$DEPLOY_DIR/letsencrypt/live/tk-substation/cert.pem" ] 2>/dev/null; then
+        deploy_msg "${BLUE}>>> 清理历史占位证书目录 letsencrypt/live/tk-substation（非 certbot 签发）${NC}"
+        rm -rf "$DEPLOY_DIR/letsencrypt/live/tk-substation" "$DEPLOY_DIR/letsencrypt/archive/tk-substation" 2>/dev/null || true
+    fi
+fi
 
 # 将 publicPath=/ 构建产物改为 /${ADMIN_ENTRY}/ 子路径（兼容仓库内预编译 dist.zip）
 patch_admin_dist_for_entry() {
