@@ -647,6 +647,9 @@ fi
 # 首次部署时复制自签名证书到 letsencrypt 固定路径，避免 nginx 因证书路径不存在而启动失败
 #（必须使用 cp 而非软链接：宿主机绝对路径软链接在容器内无法解析）
 mkdir -p "$DEPLOY_DIR/letsencrypt/live/tk-substation"
+# 若之前部署遗留了软链接，先删除避免 cp 报 "same file"
+[ -L "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem" ] && rm -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem"
+[ -L "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem" ] && rm -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem"
 cp -f "$DEPLOY_DIR/conf/ssl/server.crt" "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem"
 cp -f "$DEPLOY_DIR/conf/ssl/server.key" "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem"
 
