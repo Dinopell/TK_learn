@@ -457,7 +457,7 @@ http {
         ''      close;
     }
 
-    # 由子台后端 AssetRouteNginxService 写入（域名+后缀 → /dynamic-projects/asset_{id}）
+    # 由子台后端 AssetRouteNginxService 写入（map/locations：域名+随机后缀 → /dynamic-projects/{后缀}）
     include /etc/nginx/nginx-dynamic/asset-routes-map.conf;
 
     # ---------- 80：子台管理端 HTTP（勿对小页面整站跳 HTTPS，避免管理端被带上）----------
@@ -539,7 +539,24 @@ http {
             root /var/www/certbot;
         }
 
-        # 点号模式（如 qincao.hk.cn.jp/）：map 命中后从 asset_{id} 目录取站
+        # 路径模式（域名/后缀，由后端生成 asset-routes-locations.conf）
+        include /etc/nginx/nginx-dynamic/asset-routes-locations.conf;
+
+        # 兜底：IP 或未匹配域名时，按 URL /{随机后缀}/ 读取 /dynamic-projects/{后缀}/
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]{2,32})\$ {
+            return 301 \$uri/;
+        }
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]{2,32})(/.*)?\$ {
+            alias /dynamic-projects/\$1\$2;
+            index index.html;
+            error_page 404 = @dynamic_entry_spa;
+        }
+        location @dynamic_entry_spa {
+            rewrite ^/([a-zA-Z0-9_-]{2,32})(/.*)?\$ /\$1/index.html break;
+            root /dynamic-projects;
+        }
+
+        # 点号模式（如 entry.domain.com/）：map 命中后从 /dynamic-projects/{后缀}/ 取站
         location / {
             if (\$dynamic_asset_root = "") {
                 return 404;
@@ -569,20 +586,6 @@ http {
             proxy_connect_timeout 60s;
             proxy_send_timeout 3600s;
             proxy_read_timeout 3600s;
-        }
-
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
-            return 301 \$uri/;
-        }
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)(/.*)?\$ {
-            root /dynamic-projects;
-            index index.html;
-            try_files \$uri \$uri/ =404;
-            error_page 404 = @dynamic_project_spa;
-        }
-        location @dynamic_project_spa {
-            rewrite ^/([a-zA-Z0-9_-]+)(/.*)?\$ /\$1/index.html break;
-            root /dynamic-projects;
         }
 
         # 管理端只用 HTTP，HTTPS 误访时跳回 80
@@ -715,6 +718,11 @@ map "$host|$uri" $dynamic_asset_root {
     default "";
 }
 MAP_EOF
+fi
+if [ ! -f "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-locations.conf" ]; then
+    cat > "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-locations.conf" <<'LOC_EOF'
+# placeholder until backend refreshAssetRoutes()
+LOC_EOF
 fi
 
 # =========================================================
