@@ -208,10 +208,8 @@ done
 mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
 mkdir -p "$PROJECTS_DIR"
 
-# 为 Let's Encrypt 证书预留固定路径，首次用自签名证书占位（避免 nginx 启动失败）
+# 为 Let's Encrypt 证书预留固定路径（由第 6 步复制自签名证书占位）
 mkdir -p "$DEPLOY_DIR/letsencrypt/live/tk-substation"
-ln -sf "$DEPLOY_DIR/conf/ssl/server.crt" "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem" 2>/dev/null || true
-ln -sf "$DEPLOY_DIR/conf/ssl/server.key" "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem" 2>/dev/null || true
 # 标记持久化目录（部署脚本不会清空 dynamic-projects）
 touch "$PROJECTS_DIR/.persistent_on_host"
 mkdir -p "$DEPLOY_DIR/conf"
@@ -646,6 +644,11 @@ if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
     -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
 fi
 
+# 首次部署时复制自签名证书到 letsencrypt 固定路径，避免 nginx 因证书路径不存在而启动失败
+#（必须使用 cp 而非软链接：宿主机绝对路径软链接在容器内无法解析）
+mkdir -p "$DEPLOY_DIR/letsencrypt/live/tk-substation"
+cp -f "$DEPLOY_DIR/conf/ssl/server.crt" "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem"
+cp -f "$DEPLOY_DIR/conf/ssl/server.key" "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem"
 
 # 将 publicPath=/ 构建产物改为 /${ADMIN_ENTRY}/ 子路径（兼容仓库内预编译 dist.zip）
 patch_admin_dist_for_entry() {
