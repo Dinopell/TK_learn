@@ -468,7 +468,7 @@ http {
                 return 404;
             }
             rewrite ^ /index.html break;
-            alias \$dynamic_asset_root/;
+            root \$dynamic_asset_root;
         }
 
         location ^~ /prod-api/ {
