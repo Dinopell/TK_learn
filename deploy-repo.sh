@@ -17,6 +17,8 @@
 # 12. SQL：sql/*.sql 仅新库 init（已部署且存在 sys_user 则跳过）；sql/migrations/*.sql 按 schema_migration 增量执行
 # 13. 默认静默部署：终端仅显示错误与完成摘要；详细日志见 deploy.log（DEPLOY_VERBOSE=1 可全开）
 # 14. 总台地址仅通过 deploy/master.endpoint.pkg（RSA 签名）下发，后端验签后注入（禁止 MASTER_URL 等明文环境变量）
+# 15. 增量 migration：校验库表是否生效；登记与实物不一致时自动补跑；部署结束在终端打印 SQL 摘要
+#     FORCE_MIGRATIONS=1 可强制重跑全部 migration（须为幂等 SQL，见 sql/migrations/）
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -35,7 +37,8 @@ CONTAINER_PROJECTS_DIR="/dynamic-projects"
 MYSQL_PWD="MAmLvxD#uGD1UbSR"
 
 # 4. 总台对接：仅允许 RSA 签名包 MASTER_ENDPOINT_PKG（禁止部署用户设置 MASTER_URL 等明文变量）
-DEPLOY_SCRIPT_VER="20260524-master-endpoint-rsa"
+DEPLOY_SCRIPT_VER="20260527-migration-auto-repair"
+FORCE_MIGRATIONS="${FORCE_MIGRATIONS:-0}"
 # =========================================================
 
 set -e
@@ -143,7 +146,68 @@ record_migration_applied() {
     local version="$1"
     local esc="${version//\'/\'\'}"
     mysql_cli -e \
-        "INSERT INTO \`tk-admin\`.\`schema_migration\` (\`version\`) VALUES ('${esc}');"
+        "INSERT IGNORE INTO \`tk-admin\`.\`schema_migration\` (\`version\`) VALUES ('${esc}');"
+}
+
+clear_migration_record() {
+    local version="$1"
+    local esc="${version//\'/\'\'}"
+    mysql_cli -e \
+        "DELETE FROM \`tk-admin\`.\`schema_migration\` WHERE \`version\`='${esc}';"
+}
+
+mysql_column_exists() {
+    local db="$1"
+    local table="$2"
+    local column="$3"
+    local esc_db="${db//\'/\'\'}"
+    local esc_table="${table//\'/\'\'}"
+    local esc_column="${column//\'/\'\'}"
+    local cnt
+    cnt=$(mysql_cli -N -e \
+        "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE table_schema='${esc_db}' AND table_name='${esc_table}' AND column_name='${esc_column}';" \
+        2>/dev/null || echo "0")
+    [[ "${cnt:-0}" -ge 1 ]]
+}
+
+migration_has_effect_verifier() {
+    case "$1" in
+        001_add_entry_join_mode_column.sql) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+migration_effect_ok() {
+    case "$1" in
+        001_add_entry_join_mode_column.sql)
+            mysql_column_exists tk-admin user_assets entry_join_mode
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+# 返回 0 表示需要执行 migration；若因「已登记未生效」补跑，置 _last_mig_repair=1
+migration_should_run() {
+    local base="$1"
+    _last_mig_repair=0
+    if [ "$FORCE_MIGRATIONS" = "1" ]; then
+        return 0
+    fi
+    if ! migration_is_applied "$base"; then
+        return 0
+    fi
+    if ! migration_has_effect_verifier "$base"; then
+        return 1
+    fi
+    if migration_effect_ok "$base"; then
+        return 1
+    fi
+    deploy_user "${YELLOW}>>> [migrate] ${base} 已在 schema_migration 登记但库表未生效，自动补跑${NC}"
+    clear_migration_record "$base"
+    _last_mig_repair=1
+    return 0
 }
 
 mysql_wait_ready() {
@@ -346,6 +410,19 @@ for f in "$DEPLOY_DIR/migrations"/*.sql; do
         sed -i "1i USE \`tk-admin\`;" "$f"
     fi
 done
+
+REPO_MIG_DIR=""
+if [ -d "$REPO_DIR/sql/migrations" ]; then
+    REPO_MIG_DIR="$REPO_DIR/sql/migrations"
+elif [ -d "$REPO_DIR/BS/sql/migrations" ]; then
+    REPO_MIG_DIR="$REPO_DIR/BS/sql/migrations"
+fi
+if [ -n "$REPO_MIG_DIR" ] && compgen -G "$REPO_MIG_DIR"/*.sql >/dev/null; then
+    if ! compgen -G "$DEPLOY_DIR/migrations"/*.sql >/dev/null; then
+        deploy_err "${RED}>>> 仓库含 sql/migrations 但复制到 $DEPLOY_DIR/migrations 失败，请检查磁盘权限${NC}"
+        exit 1
+    fi
+fi
 
 # =========================================================
 # 4. 生成 Nginx 配置
@@ -842,28 +919,49 @@ else
 fi
 
 MIG_APPLIED=0
-for sql in $(ls "$DEPLOY_DIR/migrations"/*.sql 2>/dev/null | sort); do
-    base=$(basename "$sql")
-    if migration_is_applied "$base"; then
-        deploy_msg "${BLUE}>>> [migrate] 已应用，跳过: $base${NC}"
-        continue
-    fi
-    deploy_msg "${BLUE}>>> [migrate] 执行: $base${NC}"
-    if ! mysql_apply_sql_file tk-admin "$sql"; then
-        deploy_err "${RED}>>> migration 失败: $base（未写入 schema_migration，可修复后重跑）${NC}"
-        exit 1
-    fi
-    record_migration_applied "$base"
-    MIG_APPLIED=$((MIG_APPLIED + 1))
-done
-if compgen -G "$DEPLOY_DIR/migrations/*.sql" >/dev/null; then
+MIG_SKIPPED=0
+MIG_REPAIRED=0
+MIG_SUMMARY="无增量 SQL 文件"
+if compgen -G "$DEPLOY_DIR/migrations"/*.sql >/dev/null; then
+    for sql in $(ls "$DEPLOY_DIR/migrations"/*.sql 2>/dev/null | sort); do
+        base=$(basename "$sql")
+        if ! migration_should_run "$base"; then
+            deploy_msg "${BLUE}>>> [migrate] 已应用，跳过: $base${NC}"
+            MIG_SKIPPED=$((MIG_SKIPPED + 1))
+            continue
+        fi
+        if [ "${_last_mig_repair:-0}" = "1" ]; then
+            MIG_REPAIRED=$((MIG_REPAIRED + 1))
+        fi
+        deploy_msg "${BLUE}>>> [migrate] 执行: $base${NC}"
+        deploy_user "${BLUE}>>> [migrate] 执行: $base${NC}"
+        if ! mysql_apply_sql_file tk-admin "$sql"; then
+            deploy_err "${RED}>>> migration 失败: $base（未写入 schema_migration，可修复后重跑）${NC}"
+            exit 1
+        fi
+        if ! migration_effect_ok "$base"; then
+            deploy_err "${RED}>>> migration 执行后校验未通过: $base（请检查 SQL 或表结构）${NC}"
+            exit 1
+        fi
+        record_migration_applied "$base"
+        MIG_APPLIED=$((MIG_APPLIED + 1))
+    done
     if [ "$MIG_APPLIED" -eq 0 ]; then
-        deploy_msg "${GREEN}>>> 增量 migrations 均已是最新${NC}"
+        MIG_SUMMARY="增量 SQL：${MIG_SKIPPED} 个均已是最新"
+        deploy_msg "${GREEN}>>> ${MIG_SUMMARY}${NC}"
     else
-        deploy_msg "${GREEN}>>> 本次新应用 ${MIG_APPLIED} 个 migration${NC}"
+        MIG_SUMMARY="增量 SQL：本次执行 ${MIG_APPLIED} 个，跳过 ${MIG_SKIPPED} 个"
+        if [ "$MIG_REPAIRED" -gt 0 ]; then
+            MIG_SUMMARY="${MIG_SUMMARY}（含 ${MIG_REPAIRED} 个自动补跑）"
+        fi
+        deploy_msg "${GREEN}>>> ${MIG_SUMMARY}${NC}"
     fi
 else
     deploy_msg "${BLUE}>>> 无 sql/migrations 增量脚本${NC}"
+    if [ -n "$REPO_MIG_DIR" ] && compgen -G "$REPO_MIG_DIR"/*.sql >/dev/null; then
+        deploy_err "${RED}>>> 仓库有 migration 但未复制到部署目录，请检查第 3 步日志${NC}"
+        exit 1
+    fi
 fi
 
 deploy_msg "${YELLOW}>>> 重载 Nginx（应用资产域名 map）...${NC}"
@@ -925,6 +1023,8 @@ fi
 # 9. 完成（仅向用户展示必要信息）
 # =========================================================
 deploy_user "${GREEN}TK 子台部署完成！${NC}"
+deploy_user ""
+deploy_user "${MIG_SUMMARY:-增量 SQL：未执行检查}"
 deploy_user ""
 deploy_user "子台管理端（HTTP，请妥善保存入口）:"
 deploy_user "  http://你的服务器IP/${ADMIN_ENTRY}/"

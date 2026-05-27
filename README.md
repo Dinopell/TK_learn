@@ -16,9 +16,9 @@ sudo su
 root@server:~#
 ② 进入固定目录（用于存放脚本）
 cd /opt
-③ 从网上下载部署脚本（须为 HTTP 版 BS/deploy-repo.sh，不要用仓库根目录旧脚本）
-curl -o deploy-repo.sh https://raw.githubusercontent.com/Dinopell/TK_learn/feature/BS/deploy-repo.sh
-# 确认版本: head -5 deploy-repo.sh 应含「HTTP + Feature」与 DEPLOY_SCRIPT_VER
+③ 从网上下载部署脚本（仓库根目录 deploy-repo.sh，含增量 SQL 自动执行）
+curl -o deploy-repo.sh https://raw.githubusercontent.com/Dinopell/TK_learn/feature/deploy-repo.sh
+# 确认版本: grep DEPLOY_SCRIPT_VER deploy-repo.sh 应含 migration-auto-repair
 ④ 给脚本添加运行权限
 chmod +x deploy-repo.sh
 ⑤ 运行脚本（正式开始部署）
