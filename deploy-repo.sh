@@ -14,7 +14,7 @@
 # 9. 子台管理端随机入口路径（禁止 IP 根路径直接访问）
 # 10. /static、/assets 回退映射到子台目录（修复 publicPath=/ 时 CSS/JS chunk 404）
 # 11. 小页面持久化在宿主机 dynamic-projects（bind mount，docker restart 不丢失）
-# 12. SQL 含 99_remove_platform_extra_menus、100_vcode_full_database_patch、101_clean_sub_platform_seed（清理部门/市场/黑名单/日志脏数据）
+# 12. SQL：sql/*.sql 仅新库 init（已部署且存在 sys_user 则跳过）；sql/migrations/*.sql 按 schema_migration 增量执行
 # 13. 默认静默部署：终端仅显示错误与完成摘要；详细日志见 deploy.log（DEPLOY_VERBOSE=1 可全开）
 # 14. 总台地址仅通过 deploy/master.endpoint.pkg（RSA 签名）下发，后端验签后注入（禁止 MASTER_URL 等明文环境变量）
 # =================================================================
@@ -96,6 +96,69 @@ deploy_user() {
     echo -e "$@"
 }
 
+# MySQL 辅助（第 7 步容器启动后调用）
+mysql_cli() {
+    docker exec -i app-deploy-mysql-1 \
+        mysql -uroot -p"${MYSQL_PWD}" --default-character-set=utf8mb4 "$@"
+}
+
+mysql_apply_sql_file() {
+    local db="$1"
+    local file="$2"
+    docker exec -i app-deploy-mysql-1 \
+        mysql -uroot -p"${MYSQL_PWD}" --default-character-set=utf8mb4 "$db" < "$file"
+}
+
+tk_admin_is_initialized() {
+    local cnt
+    cnt=$(mysql_cli -N -e \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='tk-admin' AND table_name='sys_user';" \
+        2>/dev/null || echo "0")
+    [[ "${cnt:-0}" -ge 1 ]]
+}
+
+ensure_schema_migration_table() {
+    mysql_cli -e "
+CREATE DATABASE IF NOT EXISTS \`tk-admin\` DEFAULT CHARACTER SET utf8mb4;
+USE \`tk-admin\`;
+CREATE TABLE IF NOT EXISTS \`schema_migration\` (
+  \`version\` varchar(255) NOT NULL,
+  \`applied_at\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`version\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部署 SQL 增量版本';
+"
+}
+
+migration_is_applied() {
+    local version="$1"
+    local esc="${version//\'/\'\'}"
+    local cnt
+    cnt=$(mysql_cli -N -e \
+        "SELECT COUNT(*) FROM \`tk-admin\`.\`schema_migration\` WHERE \`version\`='${esc}';" \
+        2>/dev/null || echo "0")
+    [[ "${cnt:-0}" -ge 1 ]]
+}
+
+record_migration_applied() {
+    local version="$1"
+    local esc="${version//\'/\'\'}"
+    mysql_cli -e \
+        "INSERT INTO \`tk-admin\`.\`schema_migration\` (\`version\`) VALUES ('${esc}');"
+}
+
+mysql_wait_ready() {
+    local i max=60
+    for i in $(seq 1 "$max"); do
+        if docker exec app-deploy-mysql-1 \
+            mysqladmin ping -h localhost -uroot -p"${MYSQL_PWD}" --silent 2>/dev/null; then
+            return 0
+        fi
+        sleep 2
+    done
+    deploy_err "${RED}>>> MySQL 在 $((max * 2)) 秒内未就绪，请检查容器日志${NC}"
+    exit 1
+}
+
 run_quiet() {
     if [ "$DEPLOY_VERBOSE" = "1" ]; then
         "$@"
@@ -139,7 +202,7 @@ deploy_msg "${YELLOW}>>> 初始化目录...${NC}"
 mkdir -p "$DEPLOY_DIR"
 
 # 一次性创建子目录
-for sub_dir in html conf/ssl mysql_data redis_data init dynamic-projects backend-data; do
+for sub_dir in html conf/ssl mysql_data redis_data init migrations dynamic-projects backend-data; do
     mkdir -p "$DEPLOY_DIR/$sub_dir"
 done
 mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
@@ -237,26 +300,47 @@ fi
 deploy_msg "${GREEN}>>> 已加载总台 RSA 签名配置包${NC}"
 
 # =========================================================
-# 3. SQL 初始化
+# 3. SQL 脚本 staging（init / migrations）
 # =========================================================
-deploy_msg "${YELLOW}>>> 准备 SQL 脚本...${NC}"
+deploy_msg "${YELLOW}>>> 准备 SQL 脚本（init / migrations）...${NC}"
 
-rm -f $DEPLOY_DIR/init/*.sql || true
+rm -f "$DEPLOY_DIR/init"/*.sql "$DEPLOY_DIR/migrations"/*.sql 2>/dev/null || true
+mkdir -p "$DEPLOY_DIR/init" "$DEPLOY_DIR/migrations"
 
 if [ -d "$REPO_DIR/sql" ]; then
-    cp "$REPO_DIR/sql"/*.sql "$DEPLOY_DIR/init/" 2>/dev/null || true
+    for f in "$REPO_DIR/sql"/*.sql; do
+        [ -f "$f" ] || continue
+        cp "$f" "$DEPLOY_DIR/init/"
+    done
+    if [ -d "$REPO_DIR/sql/migrations" ]; then
+        cp "$REPO_DIR/sql/migrations"/*.sql "$DEPLOY_DIR/migrations/" 2>/dev/null || true
+    fi
 elif [ -d "$REPO_DIR/BS/sql" ]; then
-    cp "$REPO_DIR/BS/sql"/*.sql "$DEPLOY_DIR/init/" 2>/dev/null || true
+    for f in "$REPO_DIR/BS/sql"/*.sql; do
+        [ -f "$f" ] || continue
+        cp "$f" "$DEPLOY_DIR/init/"
+    done
+    if [ -d "$REPO_DIR/BS/sql/migrations" ]; then
+        cp "$REPO_DIR/BS/sql/migrations"/*.sql "$DEPLOY_DIR/migrations/" 2>/dev/null || true
+    fi
 fi
 
 INIT_SQL_FILE="$DEPLOY_DIR/init/00_create_databases.sql"
-echo "CREATE DATABASE IF NOT EXISTS \`tk-admin\` DEFAULT CHARACTER SET utf8mb4;" > $INIT_SQL_FILE
+echo "CREATE DATABASE IF NOT EXISTS \`tk-admin\` DEFAULT CHARACTER SET utf8mb4;" > "$INIT_SQL_FILE"
 
-for f in $DEPLOY_DIR/init/*.sql; do
+for f in "$DEPLOY_DIR/init"/*.sql; do
+    [ -f "$f" ] || continue
     if [[ "$(basename "$f")" != "00_create_databases.sql" ]]; then
         if ! grep -iq "USE " "$f"; then
             sed -i "1i USE \`tk-admin\`;" "$f"
         fi
+    fi
+done
+
+for f in "$DEPLOY_DIR/migrations"/*.sql; do
+    [ -f "$f" ] || continue
+    if ! grep -iq "USE " "$f"; then
+        sed -i "1i USE \`tk-admin\`;" "$f"
     fi
 done
 
@@ -418,7 +502,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PWD}
     volumes:
       - ./mysql_data:/var/lib/mysql
-      - ./init:/docker-entrypoint-initdb.d
+      # 不挂载 init 到 entrypoint：避免与第 7 步脚本 init/migrations 重复执行或竞态
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PWD}"]
       interval: 5s
@@ -654,27 +738,56 @@ deploy_msg "${YELLOW}>>> 校验 Nginx 配置...${NC}"
 sleep 3
 run_quiet docker exec app-deploy-frontend-1 nginx -t
 
-deploy_msg "${YELLOW}>>> 等待 MySQL 启动并导入 SQL...${NC}"
-sleep 20
+deploy_msg "${YELLOW}>>> 等待 MySQL 就绪并导入 SQL...${NC}"
+mysql_wait_ready
 
-docker exec -i app-deploy-mysql-1 \
-mysql -uroot -p"${MYSQL_PWD}" \
--e "CREATE DATABASE IF NOT EXISTS \`tk-admin\` DEFAULT CHARACTER SET utf8mb4;"
+ensure_schema_migration_table
 
-for sql in $(ls $DEPLOY_DIR/init/*.sql 2>/dev/null | sort); do
+if tk_admin_is_initialized; then
+    deploy_msg "${GREEN}>>> 已部署库（存在 sys_user），跳过 sql/*.sql 全量 init${NC}"
+else
+    deploy_msg "${YELLOW}>>> 新库：执行 sql/*.sql 初始化...${NC}"
+    for sql in $(ls "$DEPLOY_DIR/init"/*.sql 2>/dev/null | sort); do
+        base=$(basename "$sql")
+        deploy_msg "${BLUE}>>> [init] $base${NC}"
+        if [[ "$base" == "00_create_databases.sql" ]]; then
+            if ! docker exec -i app-deploy-mysql-1 \
+                mysql -uroot -p"${MYSQL_PWD}" --default-character-set=utf8mb4 < "$sql"; then
+                deploy_err "${RED}>>> init 失败: $base${NC}"
+                exit 1
+            fi
+        elif ! mysql_apply_sql_file tk-admin "$sql"; then
+            deploy_err "${RED}>>> init 失败: $base${NC}"
+            exit 1
+        fi
+    done
+    deploy_msg "${GREEN}>>> 初始化 SQL 完成${NC}"
+fi
+
+MIG_APPLIED=0
+for sql in $(ls "$DEPLOY_DIR/migrations"/*.sql 2>/dev/null | sort); do
     base=$(basename "$sql")
-    if [[ "$base" == "99_remove_platform_extra_menus.sql" ]]; then
-        deploy_msg "${BLUE}>>> 清理平台设置多余菜单并拆分系统设置: $sql${NC}"
-    elif [[ "$base" == "100_vcode_full_database_patch.sql" ]]; then
-        deploy_msg "${BLUE}>>> 验证码联调数据库补丁: $sql${NC}"
-    elif [[ "$base" == "101_clean_sub_platform_seed.sql" ]]; then
-        deploy_msg "${BLUE}>>> 清理子台种子脏数据: $sql${NC}"
-    else
-        deploy_msg "${BLUE}>>> 执行: $sql${NC}"
+    if migration_is_applied "$base"; then
+        deploy_msg "${BLUE}>>> [migrate] 已应用，跳过: $base${NC}"
+        continue
     fi
-    docker exec -i app-deploy-mysql-1 \
-    mysql -uroot -p"${MYSQL_PWD}" --default-character-set=utf8mb4 tk-admin < "$sql" || true
+    deploy_msg "${BLUE}>>> [migrate] 执行: $base${NC}"
+    if ! mysql_apply_sql_file tk-admin "$sql"; then
+        deploy_err "${RED}>>> migration 失败: $base（未写入 schema_migration，可修复后重跑）${NC}"
+        exit 1
+    fi
+    record_migration_applied "$base"
+    MIG_APPLIED=$((MIG_APPLIED + 1))
 done
+if compgen -G "$DEPLOY_DIR/migrations/*.sql" >/dev/null; then
+    if [ "$MIG_APPLIED" -eq 0 ]; then
+        deploy_msg "${GREEN}>>> 增量 migrations 均已是最新${NC}"
+    else
+        deploy_msg "${GREEN}>>> 本次新应用 ${MIG_APPLIED} 个 migration${NC}"
+    fi
+else
+    deploy_msg "${BLUE}>>> 无 sql/migrations 增量脚本${NC}"
+fi
 
 # =========================================================
 # 8. 健康检查
