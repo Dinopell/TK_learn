@@ -543,10 +543,10 @@ http {
         include /etc/nginx/nginx-dynamic/asset-routes-locations.conf;
 
         # 兜底：IP 或未匹配域名时，/dynamic-projects/{随机后缀}/（用 root+try_files，避免 alias 导致配置失败）
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]{2,32})\$ {
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]\{2,32\})\$ {
             return 301 \$uri/;
         }
-        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]{2,32})(/.*)?\$ {
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]\{2,32\})(/.*)?\$ {
             root /dynamic-projects;
             try_files /\$1\$2 /\$1\$2/ /\$1/index.html =404;
         }
