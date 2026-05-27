@@ -37,7 +37,7 @@ CONTAINER_PROJECTS_DIR="/dynamic-projects"
 MYSQL_PWD="MAmLvxD#uGD1UbSR"
 
 # 4. 总台对接：仅允许 RSA 签名包 MASTER_ENDPOINT_PKG（禁止部署用户设置 MASTER_URL 等明文变量）
-DEPLOY_SCRIPT_VER="20260527-migration-auto-repair"
+DEPLOY_SCRIPT_VER="20260527-nginx-heredoc-reexec"
 FORCE_MIGRATIONS="${FORCE_MIGRATIONS:-0}"
 # =========================================================
 
@@ -234,6 +234,40 @@ run_quiet() {
 
 deploy_msg "${YELLOW}>>> 开始部署 TK 子台系统 [脚本: $DEPLOY_SCRIPT_VER] [分支: $REPO_BRANCH]...${NC}"
 
+# 拉取仓库后若当前不是仓库内脚本，则切换（避免 /opt 或 app-deploy 下旧 curl 脚本继续生成错误 nginx.conf）
+maybe_reexec_repo_deploy_script() {
+    local repo_script="$REPO_DIR/BS/deploy-repo.sh"
+    [ -f "$repo_script" ] || return 0
+    [ "${TK_DEPLOY_REEXEC:-}" = "1" ] && return 0
+    local self="${BASH_SOURCE[0]:-$0}"
+    local self_real repo_real
+    self_real="$(cd "$(dirname "$self")" && pwd)/$(basename "$self")"
+    repo_real="$(cd "$(dirname "$repo_script")" && pwd)/$(basename "$repo_script")"
+    if [ "$self_real" = "$repo_real" ]; then
+        return 0
+    fi
+    if ! grep -q "NGINXEOF" "$repo_script" 2>/dev/null; then
+        deploy_err "${RED}>>> 仓库内 $repo_script 仍过旧（无 NGINXEOF），请 push 最新 BS/deploy-repo.sh 后重试${NC}"
+        exit 1
+    fi
+    deploy_msg "${YELLOW}>>> 切换为仓库内最新部署脚本: $repo_script${NC}"
+    export TK_DEPLOY_REEXEC=1
+    exec bash "$repo_script" "$@"
+}
+
+validate_nginx_regex_or_die() {
+    local f="$DEPLOY_DIR/conf/nginx.conf"
+    [ -f "$f" ] || return 0
+    # 旧版未加引号 heredoc 时 bash 会吃掉 $+，生成 ([a-zA-Z0-9_-]) 或 ([a-zA-Z0-9_-]$
+    if grep -qE 'location ~ \^/\(\?!.*\[a-zA-Z0-9_-\](\)|\$)' "$f" 2>/dev/null \
+        && ! grep -qE '\[a-zA-Z0-9_-]\+\)' "$f" 2>/dev/null; then
+        deploy_err "${RED}>>> nginx.conf 正则异常（量词 + 被旧脚本吃掉）${NC}"
+        deploy_err "${RED}>>> 请执行: bash $REPO_DIR/BS/deploy-repo.sh${NC}"
+        sed -n '100,115p' "$f" >&2 || true
+        exit 1
+    fi
+}
+
 # =========================================================
 # 0. 环境依赖检查与系统优化
 # =========================================================
@@ -328,6 +362,8 @@ cd $REPO_DIR
 git lfs install --local
 git lfs pull
 cd $DEPLOY_DIR
+
+maybe_reexec_repo_deploy_script
 
 JAR_FILE="$REPO_DIR/springboot-app.jar"
 if [ ! -f "$JAR_FILE" ]; then
@@ -601,6 +637,7 @@ if grep -qE '^[[:space:]]*2,32\}\$' "$DEPLOY_DIR/conf/nginx.conf" 2>/dev/null; t
     sed -n '100,115p' "$DEPLOY_DIR/conf/nginx.conf" >&2 || true
     exit 1
 fi
+validate_nginx_regex_or_die
 
 # =========================================================
 # 5. 构建带 certbot 的 backend 镜像（容器内申请证书需要）
