@@ -202,11 +202,16 @@ deploy_msg "${YELLOW}>>> 初始化目录...${NC}"
 mkdir -p "$DEPLOY_DIR"
 
 # 一次性创建子目录
-for sub_dir in html conf/ssl mysql_data redis_data init migrations dynamic-projects backend-data; do
+for sub_dir in html conf/ssl mysql_data redis_data init migrations dynamic-projects backend-data certbot-www letsencrypt; do
     mkdir -p "$DEPLOY_DIR/$sub_dir"
 done
 mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
 mkdir -p "$PROJECTS_DIR"
+
+# 为 Let's Encrypt 证书预留固定路径，首次用自签名证书占位（避免 nginx 启动失败）
+mkdir -p "$DEPLOY_DIR/letsencrypt/live/tk-substation"
+ln -sf "$DEPLOY_DIR/conf/ssl/server.crt" "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem" 2>/dev/null || true
+ln -sf "$DEPLOY_DIR/conf/ssl/server.key" "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem" 2>/dev/null || true
 # 标记持久化目录（部署脚本不会清空 dynamic-projects）
 touch "$PROJECTS_DIR/.persistent_on_host"
 mkdir -p "$DEPLOY_DIR/conf"
@@ -376,6 +381,11 @@ http {
     server {
         listen 80;
 
+        # Let's Encrypt HTTP-01 验证
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
         location = / {
             return 404;
         }
@@ -438,8 +448,13 @@ http {
     server {
         listen 443 ssl;
         http2 on;
-        ssl_certificate /etc/nginx/ssl/server.crt;
-        ssl_certificate_key /etc/nginx/ssl/server.key;
+        ssl_certificate /etc/letsencrypt/live/tk-substation/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/tk-substation/privkey.pem;
+
+        # Let's Encrypt HTTP-01 验证（HTTPS 也保留，防止验证器重定向）
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
 
         # 点号模式（如 qincao.hk.cn.jp/）：map 命中后从 asset_{id} 目录取站
         location / {
@@ -505,7 +520,21 @@ http {
 EOF
 
 # =========================================================
-# 5. 生成 Docker Compose
+# 5. 构建带 certbot 的 backend 镜像（容器内申请证书需要）
+# =========================================================
+deploy_msg "${YELLOW}>>> 构建后端镜像（含 certbot + docker-cli）...${NC}"
+
+cat > "$DEPLOY_DIR/backend.Dockerfile" <<'BEOF'
+FROM eclipse-temurin:17-jdk-alpine
+RUN apk add --no-cache certbot docker-cli
+BEOF
+if ! docker build -t app-deploy-backend:latest -f "$DEPLOY_DIR/backend.Dockerfile" "$DEPLOY_DIR" >>"$DEPLOY_LOG" 2>&1; then
+    deploy_err "${RED}>>> 后端镜像构建失败（详见 $DEPLOY_LOG）${NC}"
+    exit 1
+fi
+
+# =========================================================
+# 6. 生成 Docker Compose
 # =========================================================
 deploy_msg "${YELLOW}>>> 生成 Docker Compose...${NC}"
 
@@ -535,7 +564,7 @@ services:
     restart: always
 
   backend:
-    image: eclipse-temurin:17-jdk-alpine
+    image: app-deploy-backend:latest
     container_name: app-deploy-backend-1
     depends_on:
       mysql:
@@ -546,9 +575,12 @@ services:
       - ./repo_source/springboot-app.jar:/app.jar
       - ./dynamic-projects:${CONTAINER_PROJECTS_DIR}
       - ./backend-data:/app/data
+      - ./certbot-www:/var/www/certbot
+      - ./letsencrypt:/etc/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DEPLOY_ROOT=${CONTAINER_PROJECTS_DIR}
-      - NGINX_RELOAD_CMD=echo skip-nginx-in-backend-container
+      - NGINX_RELOAD_CMD=docker exec app-deploy-frontend-1 nginx -s reload
       - RUOYI_PROFILE=/app/data/uploadPath
       - RUOYI_FINGERPRINT_FILE=/app/data/license/device.id
       # 若依使用 spring.datasource.druid.master，不读取 SPRING_DATASOURCE_*，须用 DB_* / REDIS_*
@@ -586,6 +618,8 @@ services:
       - ./backend-data/nginx-dynamic:/etc/nginx/nginx-dynamic:ro
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./conf/ssl:/etc/nginx/ssl:ro
+      - ./certbot-www:/var/www/certbot
+      - ./letsencrypt:/etc/letsencrypt
     restart: always
 EOF
 
