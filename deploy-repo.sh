@@ -372,8 +372,8 @@ http {
         ''      close;
     }
 
-    # 由子台后端 AssetRouteNginxService 写入（域名+后缀 → /dynamic-projects/asset_{id}）
-    include /etc/nginx/nginx-dynamic/asset-routes-map.conf;
+    # 由子台后端按资产生成（点号子域 server 块，路径 assets/asset-{id}.conf）
+    include /etc/nginx/nginx-dynamic/assets/*.conf;
 
     # ---------- 80：子台管理端 HTTP（勿对小页面整站跳 HTTPS，避免管理端被带上）----------
     server {
@@ -454,23 +454,6 @@ http {
             root /var/www/certbot;
         }
 
-        # 点号模式（如 qincao.hk.cn.jp/）：map 命中后从 asset_{id} 目录取站
-        location / {
-            if (\$dynamic_asset_root = "") {
-                return 404;
-            }
-            alias \$dynamic_asset_root/;
-            index index.html;
-            error_page 404 = @asset_dot_spa;
-        }
-        location @asset_dot_spa {
-            if (\$dynamic_asset_root = "") {
-                return 404;
-            }
-            rewrite ^ /index.html break;
-            root \$dynamic_asset_root;
-        }
-
         location ^~ /prod-api/ {
             proxy_pass http://backend:8080/;
             proxy_http_version 1.1;
@@ -498,6 +481,10 @@ http {
         location @dynamic_project_spa {
             rewrite ^/([a-zA-Z0-9_-]+)(/.*)?\$ /\$1/index.html break;
             root /dynamic-projects;
+        }
+
+        location / {
+            return 404;
         }
 
         # 管理端只用 HTTP，HTTPS 误访时跳回 80
@@ -621,15 +608,12 @@ services:
     restart: always
 EOF
 
-mkdir -p "$DEPLOY_DIR/backend-data/nginx-dynamic"
-# 占位 map，避免首次部署因 include 缺失导致 nginx -t 失败
-if [ ! -f "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-map.conf" ]; then
-    cat > "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-map.conf" <<'MAP_EOF'
-# placeholder until backend refreshAssetRoutes()
-map "$host|$uri" $dynamic_asset_root {
-    default "";
-}
-MAP_EOF
+mkdir -p "$DEPLOY_DIR/backend-data/nginx-dynamic/assets"
+# 占位 include，避免首次部署因 assets/*.conf 通配无匹配导致 nginx -t 失败
+if ! compgen -G "$DEPLOY_DIR/backend-data/nginx-dynamic/assets/*.conf" >/dev/null; then
+    cat > "$DEPLOY_DIR/backend-data/nginx-dynamic/assets/00-placeholder.conf" <<'PH_EOF'
+# placeholder until backend refreshAssetRoutes() writes asset-{id}.conf
+PH_EOF
 fi
 
 # =========================================================
@@ -871,7 +855,7 @@ if docker exec app-deploy-frontend-1 nginx -t >>"$DEPLOY_LOG" 2>&1; then
     run_quiet docker exec app-deploy-frontend-1 nginx -s reload
     deploy_msg "${GREEN}>>> Nginx 已 reload${NC}"
 else
-    deploy_err "${YELLOW}>>> Nginx 配置校验失败，请检查 backend-data/nginx-dynamic/asset-routes-map.conf${NC}"
+    deploy_err "${YELLOW}>>> Nginx 配置校验失败，请检查 backend-data/nginx-dynamic/assets/*.conf${NC}"
 fi
 
 # =========================================================
