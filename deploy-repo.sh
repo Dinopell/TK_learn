@@ -17,6 +17,7 @@
 # 12. SQL：sql/*.sql 仅新库 init（已部署且存在 sys_user 则跳过）；sql/migrations/*.sql 按 schema_migration 增量执行
 # 13. 默认静默部署：终端仅显示错误与完成摘要；详细日志见 deploy.log（DEPLOY_VERBOSE=1 可全开）
 # 14. 总台地址仅通过 deploy/master.endpoint.pkg（RSA 签名）下发，后端验签后注入（禁止 MASTER_URL 等明文环境变量）
+# 15. 管理端仅 HTTP（/${ADMIN_ENTRY}/）；已部署源码仅 HTTPS；资产 include 在主 server 之后防 default_server 劫持
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -910,8 +911,12 @@ fi
 # =========================================================
 deploy_user "${GREEN}TK 子台部署完成！${NC}"
 deploy_user ""
-deploy_user "子台管理端（HTTP，请妥善保存入口）:"
+deploy_user "子台管理端（仅 HTTP，请妥善保存入口）:"
 deploy_user "  http://你的服务器IP/${ADMIN_ENTRY}/"
+deploy_user ""
+deploy_user "已部署用户源码（HTTPS，需在管理端配置域名并申请证书后访问）:"
+deploy_user "  路径模式: https://你的域名/项目访问后缀/"
+deploy_user "  点号模式: https://完整主机名（如 buu.ac.cn.xxxxx）/"
 deploy_user ""
 deploy_user "默认登录账号: admin"
 deploy_user "默认登录密码: admin123"
