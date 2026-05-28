@@ -17,8 +17,6 @@
 # 12. SQL：sql/*.sql 仅新库 init（已部署且存在 sys_user 则跳过）；sql/migrations/*.sql 按 schema_migration 增量执行
 # 13. 默认静默部署：终端仅显示错误与完成摘要；详细日志见 deploy.log（DEPLOY_VERBOSE=1 可全开）
 # 14. 总台地址仅通过 deploy/master.endpoint.pkg（RSA 签名）下发，后端验签后注入（禁止 MASTER_URL 等明文环境变量）
-# 15. 增量 migration：校验库表是否生效；登记与实物不一致时自动补跑；部署结束在终端打印 SQL 摘要
-#     FORCE_MIGRATIONS=1 可强制重跑全部 migration（须为幂等 SQL，见 sql/migrations/）
 # =================================================================
 
 # ========================= 配置区 =========================
@@ -37,8 +35,7 @@ CONTAINER_PROJECTS_DIR="/dynamic-projects"
 MYSQL_PWD="MAmLvxD#uGD1UbSR"
 
 # 4. 总台对接：仅允许 RSA 签名包 MASTER_ENDPOINT_PKG（禁止部署用户设置 MASTER_URL 等明文变量）
-DEPLOY_SCRIPT_VER="20260527-nginx-heredoc-reexec"
-FORCE_MIGRATIONS="${FORCE_MIGRATIONS:-0}"
+DEPLOY_SCRIPT_VER="20260524-master-endpoint-rsa"
 # =========================================================
 
 set -e
@@ -146,68 +143,7 @@ record_migration_applied() {
     local version="$1"
     local esc="${version//\'/\'\'}"
     mysql_cli -e \
-        "INSERT IGNORE INTO \`tk-admin\`.\`schema_migration\` (\`version\`) VALUES ('${esc}');"
-}
-
-clear_migration_record() {
-    local version="$1"
-    local esc="${version//\'/\'\'}"
-    mysql_cli -e \
-        "DELETE FROM \`tk-admin\`.\`schema_migration\` WHERE \`version\`='${esc}';"
-}
-
-mysql_column_exists() {
-    local db="$1"
-    local table="$2"
-    local column="$3"
-    local esc_db="${db//\'/\'\'}"
-    local esc_table="${table//\'/\'\'}"
-    local esc_column="${column//\'/\'\'}"
-    local cnt
-    cnt=$(mysql_cli -N -e \
-        "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE table_schema='${esc_db}' AND table_name='${esc_table}' AND column_name='${esc_column}';" \
-        2>/dev/null || echo "0")
-    [[ "${cnt:-0}" -ge 1 ]]
-}
-
-migration_has_effect_verifier() {
-    case "$1" in
-        001_add_entry_join_mode_column.sql) return 0 ;;
-        *) return 1 ;;
-    esac
-}
-
-migration_effect_ok() {
-    case "$1" in
-        001_add_entry_join_mode_column.sql)
-            mysql_column_exists tk-admin user_assets entry_join_mode
-            ;;
-        *)
-            return 0
-            ;;
-    esac
-}
-
-# 返回 0 表示需要执行 migration；若因「已登记未生效」补跑，置 _last_mig_repair=1
-migration_should_run() {
-    local base="$1"
-    _last_mig_repair=0
-    if [ "$FORCE_MIGRATIONS" = "1" ]; then
-        return 0
-    fi
-    if ! migration_is_applied "$base"; then
-        return 0
-    fi
-    if ! migration_has_effect_verifier "$base"; then
-        return 1
-    fi
-    if migration_effect_ok "$base"; then
-        return 1
-    fi
-    deploy_user "${YELLOW}>>> [migrate] ${base} 已在 schema_migration 登记但库表未生效，自动补跑${NC}"
-    clear_migration_record "$base"
-    _last_mig_repair=1
-    return 0
+        "INSERT INTO \`tk-admin\`.\`schema_migration\` (\`version\`) VALUES ('${esc}');"
 }
 
 mysql_wait_ready() {
@@ -233,40 +169,6 @@ run_quiet() {
 }
 
 deploy_msg "${YELLOW}>>> 开始部署 TK 子台系统 [脚本: $DEPLOY_SCRIPT_VER] [分支: $REPO_BRANCH]...${NC}"
-
-# 拉取仓库后若当前不是仓库内脚本，则切换（避免 /opt 或 app-deploy 下旧 curl 脚本继续生成错误 nginx.conf）
-maybe_reexec_repo_deploy_script() {
-    local repo_script="$REPO_DIR/BS/deploy-repo.sh"
-    [ -f "$repo_script" ] || return 0
-    [ "${TK_DEPLOY_REEXEC:-}" = "1" ] && return 0
-    local self="${BASH_SOURCE[0]:-$0}"
-    local self_real repo_real
-    self_real="$(cd "$(dirname "$self")" && pwd)/$(basename "$self")"
-    repo_real="$(cd "$(dirname "$repo_script")" && pwd)/$(basename "$repo_script")"
-    if [ "$self_real" = "$repo_real" ]; then
-        return 0
-    fi
-    if ! grep -q "NGINXEOF" "$repo_script" 2>/dev/null; then
-        deploy_err "${RED}>>> 仓库内 $repo_script 仍过旧（无 NGINXEOF），请 push 最新 BS/deploy-repo.sh 后重试${NC}"
-        exit 1
-    fi
-    deploy_msg "${YELLOW}>>> 切换为仓库内最新部署脚本: $repo_script${NC}"
-    export TK_DEPLOY_REEXEC=1
-    exec bash "$repo_script" "$@"
-}
-
-validate_nginx_regex_or_die() {
-    local f="$DEPLOY_DIR/conf/nginx.conf"
-    [ -f "$f" ] || return 0
-    # 旧版未加引号 heredoc 时 bash 会吃掉 $+，生成 ([a-zA-Z0-9_-]) 或 ([a-zA-Z0-9_-]$
-    if grep -qE 'location ~ \^/\(\?!.*\[a-zA-Z0-9_-\](\)|\$)' "$f" 2>/dev/null \
-        && ! grep -qE '\[a-zA-Z0-9_-]\+\)' "$f" 2>/dev/null; then
-        deploy_err "${RED}>>> nginx.conf 正则异常（量词 + 被旧脚本吃掉）${NC}"
-        deploy_err "${RED}>>> 请执行: bash $REPO_DIR/BS/deploy-repo.sh${NC}"
-        sed -n '100,115p' "$f" >&2 || true
-        exit 1
-    fi
-}
 
 # =========================================================
 # 0. 环境依赖检查与系统优化
@@ -306,7 +208,8 @@ done
 mkdir -p "$DEPLOY_DIR/backend-data/uploadPath" "$DEPLOY_DIR/backend-data/license"
 mkdir -p "$PROJECTS_DIR"
 
-# letsencrypt 由 certbot 管理；勿预建 live/tk-substation（会与 certbot 冲突）
+# 为 Let's Encrypt 证书预留固定路径（由第 6 步复制自签名证书占位）
+mkdir -p "$DEPLOY_DIR/letsencrypt/live/tk-substation"
 # 标记持久化目录（部署脚本不会清空 dynamic-projects）
 touch "$PROJECTS_DIR/.persistent_on_host"
 mkdir -p "$DEPLOY_DIR/conf"
@@ -362,8 +265,6 @@ cd $REPO_DIR
 git lfs install --local
 git lfs pull
 cd $DEPLOY_DIR
-
-maybe_reexec_repo_deploy_script
 
 JAR_FILE="$REPO_DIR/springboot-app.jar"
 if [ ! -f "$JAR_FILE" ]; then
@@ -446,35 +347,12 @@ for f in "$DEPLOY_DIR/migrations"/*.sql; do
     fi
 done
 
-REPO_MIG_DIR=""
-if [ -d "$REPO_DIR/sql/migrations" ]; then
-    REPO_MIG_DIR="$REPO_DIR/sql/migrations"
-elif [ -d "$REPO_DIR/BS/sql/migrations" ]; then
-    REPO_MIG_DIR="$REPO_DIR/BS/sql/migrations"
-fi
-if [ -n "$REPO_MIG_DIR" ] && compgen -G "$REPO_MIG_DIR"/*.sql >/dev/null; then
-    if ! compgen -G "$DEPLOY_DIR/migrations"/*.sql >/dev/null; then
-        deploy_err "${RED}>>> 仓库含 sql/migrations 但复制到 $DEPLOY_DIR/migrations 失败，请检查磁盘权限${NC}"
-        exit 1
-    fi
-fi
-
 # =========================================================
 # 4. 生成 Nginx 配置
 # =========================================================
 deploy_msg "${YELLOW}>>> 生成 Nginx 配置...${NC}"
 
-# SSL：须证书文件真实存在（仅有 renewal 配置但无 live 文件会导致 Nginx 无法启动）
-NGINX_SSL_CERT="/etc/nginx/ssl/server.crt"
-NGINX_SSL_KEY="/etc/nginx/ssl/server.key"
-if [ -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem" ] \
-    && [ -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem" ]; then
-    NGINX_SSL_CERT="/etc/letsencrypt/live/tk-substation/fullchain.pem"
-    NGINX_SSL_KEY="/etc/letsencrypt/live/tk-substation/privkey.pem"
-fi
-
-# 使用引号 heredoc，避免 bash 把 $+、{2,32} 等破坏 Nginx 正则
-cat <<'NGINXEOF' > "$DEPLOY_DIR/conf/nginx.conf"
+cat <<EOF > "$DEPLOY_DIR/conf/nginx.conf"
 user nginx;
 worker_processes auto;
 
@@ -489,13 +367,13 @@ http {
     client_max_body_size 500m;
 
     # SockJS / STOMP WebSocket 升级（缺此项时 ws://.../websocket 失败，仅能 xhr 轮询）
-    map $http_upgrade $connection_upgrade {
+    map \$http_upgrade \$connection_upgrade {
         default upgrade;
         ''      close;
     }
 
-    # 由子台后端 AssetRouteNginxService 写入（map/locations：域名+随机后缀 → /dynamic-projects/{后缀}）
-    include /etc/nginx/nginx-dynamic/asset-routes-map.conf;
+    # 由子台后端按资产生成（点号子域 server 块，路径 assets/asset-{id}.conf）
+    include /etc/nginx/nginx-dynamic/assets/*.conf;
 
     # ---------- 80：子台管理端 HTTP（勿对小页面整站跳 HTTPS，避免管理端被带上）----------
     server {
@@ -514,12 +392,12 @@ http {
         }
 
         location ^~ /static/ {
-            alias /usr/share/nginx/html/__ADMIN_ENTRY__/static/;
+            alias /usr/share/nginx/html/${ADMIN_ENTRY}/static/;
             expires 7d;
             add_header Cache-Control "public";
         }
         location ^~ /assets/ {
-            alias /usr/share/nginx/html/__ADMIN_ENTRY__/assets/;
+            alias /usr/share/nginx/html/${ADMIN_ENTRY}/assets/;
             expires 7d;
             add_header Cache-Control "public";
         }
@@ -527,12 +405,12 @@ http {
         location ^~ /prod-api/ {
             proxy_pass http://backend:8080/;
             proxy_http_version 1.1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection $connection_upgrade;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \$connection_upgrade;
             proxy_buffering off;
             proxy_connect_timeout 60s;
             proxy_send_timeout 3600s;
@@ -540,27 +418,27 @@ http {
         }
 
         location = /index {
-            return 302 /__ADMIN_ENTRY__/index;
+            return 302 /${ADMIN_ENTRY}/index;
         }
         location = /login {
-            return 302 /__ADMIN_ENTRY__/login;
+            return 302 /${ADMIN_ENTRY}/login;
         }
 
-        location = /__ADMIN_ENTRY__ {
-            return 301 /__ADMIN_ENTRY__/;
+        location = /${ADMIN_ENTRY} {
+            return 301 /${ADMIN_ENTRY}/;
         }
-        location ^~ /__ADMIN_ENTRY__/ {
+        location ^~ /${ADMIN_ENTRY}/ {
             root /usr/share/nginx/html;
             index index.html;
-            try_files $uri $uri/ /__ADMIN_ENTRY__/index.html;
+            try_files \$uri \$uri/ /${ADMIN_ENTRY}/index.html;
         }
 
         # 小页面仅 HTTPS：HTTP 访问 /项目名/ 时跳到 443
-        location ~ ^/(?!__ADMIN_ENTRY__$)(?!__ADMIN_ENTRY__/)([a-zA-Z0-9_-]+)$ {
-            return 301 https://$host$uri/;
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
+            return 301 https://\$host\$uri/;
         }
-        location ~ ^/(?!__ADMIN_ENTRY__$)(?!__ADMIN_ENTRY__/)([a-zA-Z0-9_-]+)(/.*)?$ {
-            return 301 https://$host$request_uri;
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)(/.*)?\$ {
+            return 301 https://\$host\$request_uri;
         }
     }
 
@@ -568,76 +446,63 @@ http {
     server {
         listen 443 ssl;
         http2 on;
-        ssl_certificate __NGINX_SSL_CERT__;
-        ssl_certificate_key __NGINX_SSL_KEY__;
+        ssl_certificate /etc/letsencrypt/live/tk-substation/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/tk-substation/privkey.pem;
 
         # Let's Encrypt HTTP-01 验证（HTTPS 也保留，防止验证器重定向）
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;
         }
 
-        # 路径模式（域名/后缀，由后端生成 asset-routes-locations.conf）
-        include /etc/nginx/nginx-dynamic/asset-routes-locations.conf;
-
-        # 兜底：IP 或未匹配域名时，/dynamic-projects/{随机后缀}/（用 root+try_files，避免 alias 导致配置失败）
-        location ~ ^/(?!__ADMIN_ENTRY__$)(?!__ADMIN_ENTRY__/)([a-zA-Z0-9_-]{2,32})$ {
-            return 301 $uri/;
-        }
-        location ~ ^/(?!__ADMIN_ENTRY__$)(?!__ADMIN_ENTRY__/)([a-zA-Z0-9_-]{2,32})(/.*)?$ {
-            root /dynamic-projects;
-            try_files /$1$2 /$1$2/ /$1/index.html =404;
-        }
-
-        # 点号模式（如 entry.domain.com/）：map 命中后从 /dynamic-projects/{后缀}/ 取站
-        location / {
-            if ($dynamic_asset_root = "") {
-                return 404;
-            }
-            root $dynamic_asset_root;
-            index index.html;
-            try_files $uri $uri/ /index.html =404;
-        }
-
         location ^~ /prod-api/ {
             proxy_pass http://backend:8080/;
             proxy_http_version 1.1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection $connection_upgrade;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \$connection_upgrade;
             proxy_buffering off;
             proxy_connect_timeout 60s;
             proxy_send_timeout 3600s;
             proxy_read_timeout 3600s;
         }
 
-        # 管理端只用 HTTP，HTTPS 误访时跳回 80
-        location = /__ADMIN_ENTRY__ {
-            return 302 http://$host/__ADMIN_ENTRY__/;
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)\$ {
+            return 301 \$uri/;
         }
-        location ^~ /__ADMIN_ENTRY__/ {
-            return 302 http://$host$request_uri;
+        location ~ ^/(?!${ADMIN_ENTRY}\$)(?!${ADMIN_ENTRY}/)([a-zA-Z0-9_-]+)(/.*)?\$ {
+            root /dynamic-projects;
+            index index.html;
+            try_files \$uri \$uri/ =404;
+            error_page 404 = @dynamic_project_spa;
+        }
+        location @dynamic_project_spa {
+            rewrite ^/([a-zA-Z0-9_-]+)(/.*)?\$ /\$1/index.html break;
+            root /dynamic-projects;
+        }
+
+        location / {
+            return 404;
+        }
+
+        # 管理端只用 HTTP，HTTPS 误访时跳回 80
+        location = /${ADMIN_ENTRY} {
+            return 302 http://\$host/${ADMIN_ENTRY}/;
+        }
+        location ^~ /${ADMIN_ENTRY}/ {
+            return 302 http://\$host\$request_uri;
         }
         location ^~ /static/ {
-            return 302 http://$host$request_uri;
+            return 302 http://\$host\$request_uri;
         }
         location ^~ /assets/ {
-            return 302 http://$host$request_uri;
+            return 302 http://\$host\$request_uri;
         }
     }
 }
-NGINXEOF
-sed -i "s|__ADMIN_ENTRY__|${ADMIN_ENTRY}|g" "$DEPLOY_DIR/conf/nginx.conf"
-sed -i "s|__NGINX_SSL_CERT__|${NGINX_SSL_CERT}|g" "$DEPLOY_DIR/conf/nginx.conf"
-sed -i "s|__NGINX_SSL_KEY__|${NGINX_SSL_KEY}|g" "$DEPLOY_DIR/conf/nginx.conf"
-if grep -qE '^[[:space:]]*2,32\}\$' "$DEPLOY_DIR/conf/nginx.conf" 2>/dev/null; then
-    deploy_err "${RED}>>> nginx.conf 生成异常（含断行 2,32}\$），请确认 deploy-repo.sh 含 NGINXEOF 且为最新版${NC}"
-    sed -n '100,115p' "$DEPLOY_DIR/conf/nginx.conf" >&2 || true
-    exit 1
-fi
-validate_nginx_regex_or_die
+EOF
 
 # =========================================================
 # 5. 构建带 certbot 的 backend 镜像（容器内申请证书需要）
@@ -743,20 +608,12 @@ services:
     restart: always
 EOF
 
-mkdir -p "$DEPLOY_DIR/backend-data/nginx-dynamic"
-# 占位 map，避免首次部署因 include 缺失导致 nginx -t 失败
-if [ ! -f "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-map.conf" ]; then
-    cat > "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-map.conf" <<'MAP_EOF'
-# placeholder until backend refreshAssetRoutes()
-map "$host|$uri" $dynamic_asset_root {
-    default "";
-}
-MAP_EOF
-fi
-if [ ! -f "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-locations.conf" ]; then
-    cat > "$DEPLOY_DIR/backend-data/nginx-dynamic/asset-routes-locations.conf" <<'LOC_EOF'
-# placeholder until backend refreshAssetRoutes()
-LOC_EOF
+mkdir -p "$DEPLOY_DIR/backend-data/nginx-dynamic/assets"
+# 占位 include，避免首次部署因 assets/*.conf 通配无匹配导致 nginx -t 失败
+if ! compgen -G "$DEPLOY_DIR/backend-data/nginx-dynamic/assets/*.conf" >/dev/null; then
+    cat > "$DEPLOY_DIR/backend-data/nginx-dynamic/assets/00-placeholder.conf" <<'PH_EOF'
+# placeholder until backend refreshAssetRoutes() writes asset-{id}.conf
+PH_EOF
 fi
 
 # =========================================================
@@ -771,15 +628,14 @@ if [ ! -f "$DEPLOY_DIR/conf/ssl/server.crt" ]; then
     -subj "/C=CN/ST=Default/L=Default/O=Default/CN=localhost"
 fi
 
-# 勿将自签名证书写入 /etc/letsencrypt/live/tk-substation（会导致 certbot: live directory exists）
-# 443 在未签发 LE 前使用 /etc/nginx/ssl；签发后 renewal 存在，下次生成 nginx 会自动切到 letsencrypt 路径
-if [ ! -f "$DEPLOY_DIR/letsencrypt/renewal/tk-substation.conf" ]; then
-    if [ -d "$DEPLOY_DIR/letsencrypt/live/tk-substation" ] \
-        && [ ! -L "$DEPLOY_DIR/letsencrypt/live/tk-substation/cert.pem" ] 2>/dev/null; then
-        deploy_msg "${BLUE}>>> 清理历史占位证书目录 letsencrypt/live/tk-substation（非 certbot 签发）${NC}"
-        rm -rf "$DEPLOY_DIR/letsencrypt/live/tk-substation" "$DEPLOY_DIR/letsencrypt/archive/tk-substation" 2>/dev/null || true
-    fi
-fi
+# 首次部署时复制自签名证书到 letsencrypt 固定路径，避免 nginx 因证书路径不存在而启动失败
+#（必须使用 cp 而非软链接：宿主机绝对路径软链接在容器内无法解析）
+mkdir -p "$DEPLOY_DIR/letsencrypt/live/tk-substation"
+# 若之前部署遗留了软链接/硬链接，先删除避免 cp 报 "same file"
+rm -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem"
+rm -f "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem"
+cp -f "$DEPLOY_DIR/conf/ssl/server.crt" "$DEPLOY_DIR/letsencrypt/live/tk-substation/fullchain.pem"
+cp -f "$DEPLOY_DIR/conf/ssl/server.key" "$DEPLOY_DIR/letsencrypt/live/tk-substation/privkey.pem"
 
 # 将 publicPath=/ 构建产物改为 /${ADMIN_ENTRY}/ 子路径（兼容仓库内预编译 dist.zip）
 patch_admin_dist_for_entry() {
@@ -885,27 +741,6 @@ else
     patch_admin_dist_for_entry "$ADMIN_HTML_DIR"
 fi
 
-# 启动前用临时容器校验 Nginx（避免 frontend 起不来后无法 exec）
-validate_nginx_config_before_up() {
-    deploy_msg "${YELLOW}>>> 预检 Nginx 配置（启动容器前）...${NC}"
-    if docker run --rm \
-        -v "$DEPLOY_DIR/conf/nginx.conf:/etc/nginx/nginx.conf:ro" \
-        -v "$DEPLOY_DIR/html:/usr/share/nginx/html:ro" \
-        -v "$DEPLOY_DIR/dynamic-projects:/dynamic-projects:ro" \
-        -v "$DEPLOY_DIR/backend-data/nginx-dynamic:/etc/nginx/nginx-dynamic:ro" \
-        -v "$DEPLOY_DIR/conf/ssl:/etc/nginx/ssl:ro" \
-        -v "$DEPLOY_DIR/certbot-www:/var/www/certbot:ro" \
-        -v "$DEPLOY_DIR/letsencrypt:/etc/letsencrypt:ro" \
-        nginx:stable-alpine nginx -t >>"$DEPLOY_LOG" 2>&1; then
-        deploy_msg "${GREEN}>>> Nginx 配置预检通过${NC}"
-        return 0
-    fi
-    deploy_err "${RED}>>> Nginx 配置无效，frontend 无法启动。最近输出：${NC}"
-    tail -30 "$DEPLOY_LOG" >&2 || true
-    deploy_err "${RED}>>> 常见原因：SSL 证书路径不存在、include 的动态路由文件语法错误${NC}"
-    return 1
-}
-
 # =========================================================
 # 7. 启动服务与数据库导入
 # =========================================================
@@ -926,10 +761,6 @@ else
     { (ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null) | grep ':80 ' || true; } >>"$DEPLOY_LOG" 2>&1
 fi
 fix_host_nginx_https_redirect
-
-if ! validate_nginx_config_before_up; then
-    exit 1
-fi
 
 # 仅停止容器，不删除宿主机 bind mount 数据（勿用 docker compose down -v）
 run_quiet docker compose down || true
@@ -966,11 +797,7 @@ if ! docker ps --format '{{.Names}}' | grep -q '^app-deploy-frontend-1$'; then
     exit 1
 fi
 
-if ! docker exec app-deploy-frontend-1 nginx -t >>"$DEPLOY_LOG" 2>&1; then
-    deploy_err "${RED}>>> 运行中 Nginx 配置校验失败，容器日志：${NC}"
-    docker logs --tail 40 app-deploy-frontend-1 2>&1 | tee -a "$DEPLOY_LOG" >&2 || true
-    exit 1
-fi
+run_quiet docker exec app-deploy-frontend-1 nginx -t
 
 deploy_msg "${YELLOW}>>> 等待 MySQL 就绪并导入 SQL...${NC}"
 mysql_wait_ready
@@ -999,49 +826,28 @@ else
 fi
 
 MIG_APPLIED=0
-MIG_SKIPPED=0
-MIG_REPAIRED=0
-MIG_SUMMARY="无增量 SQL 文件"
-if compgen -G "$DEPLOY_DIR/migrations"/*.sql >/dev/null; then
-    for sql in $(ls "$DEPLOY_DIR/migrations"/*.sql 2>/dev/null | sort); do
-        base=$(basename "$sql")
-        if ! migration_should_run "$base"; then
-            deploy_msg "${BLUE}>>> [migrate] 已应用，跳过: $base${NC}"
-            MIG_SKIPPED=$((MIG_SKIPPED + 1))
-            continue
-        fi
-        if [ "${_last_mig_repair:-0}" = "1" ]; then
-            MIG_REPAIRED=$((MIG_REPAIRED + 1))
-        fi
-        deploy_msg "${BLUE}>>> [migrate] 执行: $base${NC}"
-        deploy_user "${BLUE}>>> [migrate] 执行: $base${NC}"
-        if ! mysql_apply_sql_file tk-admin "$sql"; then
-            deploy_err "${RED}>>> migration 失败: $base（未写入 schema_migration，可修复后重跑）${NC}"
-            exit 1
-        fi
-        if ! migration_effect_ok "$base"; then
-            deploy_err "${RED}>>> migration 执行后校验未通过: $base（请检查 SQL 或表结构）${NC}"
-            exit 1
-        fi
-        record_migration_applied "$base"
-        MIG_APPLIED=$((MIG_APPLIED + 1))
-    done
+for sql in $(ls "$DEPLOY_DIR/migrations"/*.sql 2>/dev/null | sort); do
+    base=$(basename "$sql")
+    if migration_is_applied "$base"; then
+        deploy_msg "${BLUE}>>> [migrate] 已应用，跳过: $base${NC}"
+        continue
+    fi
+    deploy_msg "${BLUE}>>> [migrate] 执行: $base${NC}"
+    if ! mysql_apply_sql_file tk-admin "$sql"; then
+        deploy_err "${RED}>>> migration 失败: $base（未写入 schema_migration，可修复后重跑）${NC}"
+        exit 1
+    fi
+    record_migration_applied "$base"
+    MIG_APPLIED=$((MIG_APPLIED + 1))
+done
+if compgen -G "$DEPLOY_DIR/migrations/*.sql" >/dev/null; then
     if [ "$MIG_APPLIED" -eq 0 ]; then
-        MIG_SUMMARY="增量 SQL：${MIG_SKIPPED} 个均已是最新"
-        deploy_msg "${GREEN}>>> ${MIG_SUMMARY}${NC}"
+        deploy_msg "${GREEN}>>> 增量 migrations 均已是最新${NC}"
     else
-        MIG_SUMMARY="增量 SQL：本次执行 ${MIG_APPLIED} 个，跳过 ${MIG_SKIPPED} 个"
-        if [ "$MIG_REPAIRED" -gt 0 ]; then
-            MIG_SUMMARY="${MIG_SUMMARY}（含 ${MIG_REPAIRED} 个自动补跑）"
-        fi
-        deploy_msg "${GREEN}>>> ${MIG_SUMMARY}${NC}"
+        deploy_msg "${GREEN}>>> 本次新应用 ${MIG_APPLIED} 个 migration${NC}"
     fi
 else
     deploy_msg "${BLUE}>>> 无 sql/migrations 增量脚本${NC}"
-    if [ -n "$REPO_MIG_DIR" ] && compgen -G "$REPO_MIG_DIR"/*.sql >/dev/null; then
-        deploy_err "${RED}>>> 仓库有 migration 但未复制到部署目录，请检查第 3 步日志${NC}"
-        exit 1
-    fi
 fi
 
 deploy_msg "${YELLOW}>>> 重载 Nginx（应用资产域名 map）...${NC}"
@@ -1049,7 +855,7 @@ if docker exec app-deploy-frontend-1 nginx -t >>"$DEPLOY_LOG" 2>&1; then
     run_quiet docker exec app-deploy-frontend-1 nginx -s reload
     deploy_msg "${GREEN}>>> Nginx 已 reload${NC}"
 else
-    deploy_err "${YELLOW}>>> Nginx 配置校验失败，请检查 backend-data/nginx-dynamic/asset-routes-map.conf${NC}"
+    deploy_err "${YELLOW}>>> Nginx 配置校验失败，请检查 backend-data/nginx-dynamic/assets/*.conf${NC}"
 fi
 
 # =========================================================
@@ -1103,8 +909,6 @@ fi
 # 9. 完成（仅向用户展示必要信息）
 # =========================================================
 deploy_user "${GREEN}TK 子台部署完成！${NC}"
-deploy_user ""
-deploy_user "${MIG_SUMMARY:-增量 SQL：未执行检查}"
 deploy_user ""
 deploy_user "子台管理端（HTTP，请妥善保存入口）:"
 deploy_user "  http://你的服务器IP/${ADMIN_ENTRY}/"
