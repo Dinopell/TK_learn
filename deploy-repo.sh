@@ -372,12 +372,9 @@ http {
         ''      close;
     }
 
-    # 由子台后端按资产生成（点号子域 server 块，路径 assets/asset-{id}.conf）
-    include /etc/nginx/nginx-dynamic/assets/*.conf;
-
-    # ---------- 80：子台管理端 HTTP（勿对小页面整站跳 HTTPS，避免管理端被带上）----------
+    # ---------- 80：子台管理端 HTTP（default_server，IP 访问必须落此块，勿被资产 server 劫持）----------
     server {
-        listen 80;
+        listen 80 default_server;
 
         # Let's Encrypt HTTP-01 验证
         location /.well-known/acme-challenge/ {
@@ -442,9 +439,9 @@ http {
         }
     }
 
-    # ---------- 443：用户小页面 HTTPS + 同源 /prod-api（SockJS/WSS）----------
+    # ---------- 443：用户小页面 HTTPS + 同源 /prod-api（default_server）----------
     server {
-        listen 443 ssl;
+        listen 443 ssl default_server;
         http2 on;
         ssl_certificate /etc/letsencrypt/live/tk-substation/fullchain.pem;
         ssl_certificate_key /etc/letsencrypt/live/tk-substation/privkey.pem;
@@ -501,6 +498,9 @@ http {
             return 302 http://\$host\$request_uri;
         }
     }
+
+    # 点号子域资产 server（须在主 server 之后 include，否则会抢走 default_server 导致 IP 访问 301/500）
+    include /etc/nginx/nginx-dynamic/assets/*.conf;
 }
 EOF
 
