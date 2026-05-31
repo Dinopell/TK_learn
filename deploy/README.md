@@ -52,8 +52,22 @@ bash scripts/sign-master-endpoint.sh
 ### 4. 提交并推送
 
 ```bash
-git add deploy/master.endpoint.pkg springboot-app.jar deploy-repo.sh
+git add deploy/master.endpoint.pkg springboot-app.jar dist.zip deploy-repo.sh
 git push origin feature
+```
+
+### 5. 发布 GitHub Release（推荐，部署 fallback 依赖）
+
+在 GitHub 创建 Release（或更新 latest），上传附件：
+
+- `dist.zip`
+- `springboot-app.jar`
+
+部署脚本会优先从 Raw 链接下载，失败时自动回退到：
+
+```
+https://github.com/Dinopell/TK_learn/releases/latest/download/dist.zip
+https://github.com/Dinopell/TK_learn/releases/latest/download/springboot-app.jar
 ```
 
 ---
@@ -63,12 +77,15 @@ git push origin feature
 ```bash
 sudo su
 cd /opt
-curl -O https://raw.githubusercontent.com/Dinopell/TK_learn/feature/deploy-repo.sh
+curl -fsSL -o deploy-repo.sh https://raw.githubusercontent.com/Dinopell/TK_learn/feature/deploy-repo.sh
+grep DEPLOY_SCRIPT_VER deploy-repo.sh   # 应含 20260531-bypass-lfs-curl
 chmod +x deploy-repo.sh
 bash ./deploy-repo.sh
 ```
 
-脚本会：克隆 `feature` 分支 → 读取 `deploy/master.endpoint.pkg` → 注入容器环境变量 `MASTER_ENDPOINT_PKG` → 后端启动时 **验签** 后连接总台。
+脚本会：克隆 `feature` 分支（跳过 Git LFS）→ HTTP 下载 `dist.zip` 与 `springboot-app.jar` → 读取 `deploy/master.endpoint.pkg` → 注入容器环境变量 `MASTER_ENDPOINT_PKG` → 后端启动时 **验签** 后连接总台。
+
+详细步骤与排错见仓库根目录 [README.md](../README.md)。
 
 部署完成后访问（示例）：
 

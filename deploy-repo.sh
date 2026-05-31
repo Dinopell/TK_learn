@@ -3,9 +3,9 @@
 # =================================================================
 # TK 子台最终稳定版部署脚本 (子台 HTTP:80 + 小页面 HTTPS:443 + Feature 分支)
 # 修复内容：
-# 1. 自动安装 Docker/Git-LFS 依赖
+# 1. 自动安装 Docker 依赖
 # 2. 修复 Git 仓库所有权与安全目录问题 (Dubious ownership)
-# 3. 强制同步 Git LFS 大文件（解决 Jar 包损坏/缺失问题）
+# 3. HTTP 直链下载 dist.zip / springboot-app.jar，绕过 Git LFS 配额限制
 # 4. 适配 HTTPS 克隆与 feature 分支切换
 # 5. 后端使用 DB_HOST/DB_PASSWORD（若依 Druid 不读 SPRING_DATASOURCE_*）
 # 6. Nginx 修复首页 500（/index.html 内部跳转不再误入动态项目 location）
@@ -25,6 +25,11 @@
 REPO_URL="https://github.com/Dinopell/TK_learn.git"
 REPO_BRANCH="feature"
 
+# 大文件直链（绕过 Git LFS；Raw 失败时回退到 Releases）
+ASSET_BASE_RAW="https://github.com/Dinopell/TK_learn/raw/${REPO_BRANCH}"
+ASSET_RELEASE_BASE="https://github.com/Dinopell/TK_learn/releases/latest/download"
+LFS_ASSETS=( "dist.zip" "springboot-app.jar" )
+
 # 2. 部署路径
 DEPLOY_DIR="/home/ubuntu/app-deploy"
 REPO_DIR="$DEPLOY_DIR/repo_source"
@@ -36,7 +41,7 @@ CONTAINER_PROJECTS_DIR="/dynamic-projects"
 MYSQL_PWD="MAmLvxD#uGD1UbSR"
 
 # 4. 总台对接：仅允许 RSA 签名包 MASTER_ENDPOINT_PKG（禁止部署用户设置 MASTER_URL 等明文变量）
-DEPLOY_SCRIPT_VER="20260524-master-endpoint-rsa"
+DEPLOY_SCRIPT_VER="20260531-bypass-lfs-curl"
 # =========================================================
 
 set -e
@@ -184,13 +189,6 @@ if ! command -v docker &> /dev/null; then
     sudo systemctl enable docker
 fi
 
-# 自动安装 Git LFS
-if ! command -v git-lfs &> /dev/null; then
-    deploy_msg "${BLUE}>>> 正在安装 git-lfs...${NC}"
-    sudo apt-get update && sudo apt-get install git-lfs -y
-    git lfs install
-fi
-
 # 系统内核优化
 sudo sysctl vm.overcommit_memory=1 || true
 
@@ -235,6 +233,52 @@ if ! [[ "$ADMIN_ENTRY" =~ ^[a-zA-Z0-9_-]{8,32}$ ]]; then
 fi
 deploy_msg "${GREEN}>>> 子台管理端入口路径: /${ADMIN_ENTRY}/${NC}"
 
+download_lfs_asset() {
+    local name="$1"
+    local dest="$REPO_DIR/$name"
+    local primary="${ASSET_BASE_RAW}/${name}"
+    local fallback="${ASSET_RELEASE_BASE}/${name}"
+
+    deploy_msg "${BLUE}>>> 下载 ${name}（绕过 Git LFS）...${NC}"
+
+    if curl -fsSL --connect-timeout 30 --max-time 900 -o "$dest" "$primary"; then
+        deploy_msg "${GREEN}>>> ${name} 已从 Raw 下载${NC}"
+    elif curl -fsSL --connect-timeout 30 --max-time 900 -o "$dest" "$fallback"; then
+        deploy_msg "${GREEN}>>> ${name} 已从 Releases 下载${NC}"
+    else
+        deploy_err "${RED}>>> 下载失败: ${name}${NC}"
+        deploy_err "${RED}>>> 已尝试: ${primary}${NC}"
+        deploy_err "${RED}>>> 已尝试: ${fallback}${NC}"
+        exit 1
+    fi
+
+    if [ ! -s "$dest" ]; then
+        deploy_err "${RED}>>> ${name} 为空文件${NC}"
+        exit 1
+    fi
+
+    case "$name" in
+        *.zip)
+            if ! file "$dest" | grep -qE 'Zip archive|compressed data'; then
+                deploy_err "${RED}>>> ${name} 不是有效 ZIP（可能是 LFS 指针）${NC}"
+                head -3 "$dest" >&2 || true
+                exit 1
+            fi
+            unzip -t "$dest" >/dev/null 2>&1 || {
+                deploy_err "${RED}>>> ${name} ZIP 校验失败${NC}"
+                exit 1
+            }
+            ;;
+        *.jar)
+            if ! file "$dest" | grep -qE 'Java archive|Zip archive'; then
+                deploy_err "${RED}>>> ${name} 不是有效 JAR（可能是 LFS 指针）${NC}"
+                head -3 "$dest" >&2 || true
+                exit 1
+            fi
+            ;;
+    esac
+}
+
 # =========================================================
 # 2. 拉取代码 (HTTPS + Branch 逻辑)
 # =========================================================
@@ -247,33 +291,31 @@ if [ -d "$REPO_DIR" ]; then
     git config --global --add safe.directory "$REPO_DIR"
 fi
 
-# 拉取或更新
-if [ ! -d "$REPO_DIR" ]; then
-    deploy_msg "${BLUE}>>> 首次克隆分支: $REPO_BRANCH ...${NC}"
-    git clone -b $REPO_BRANCH $REPO_URL $REPO_DIR
+# 克隆/更新时跳过 LFS smudge，避免配额导致 checkout 失败
+export GIT_LFS_SKIP_SMUDGE=1
+
+if [ ! -d "$REPO_DIR/.git" ]; then
+    deploy_msg "${BLUE}>>> 首次克隆分支: $REPO_BRANCH（跳过 LFS smudge）...${NC}"
+    git clone --branch "$REPO_BRANCH" --depth 1 "$REPO_URL" "$REPO_DIR"
 else
-    deploy_msg "${BLUE}>>> 强制同步分支: $REPO_BRANCH ...${NC}"
-    cd $REPO_DIR
-    git fetch --all
-    # 强制切换并重置到指定的分支
-    git checkout $REPO_BRANCH || git checkout -b $REPO_BRANCH origin/$REPO_BRANCH
-    git reset --hard origin/$REPO_BRANCH
+    deploy_msg "${BLUE}>>> 强制同步分支: $REPO_BRANCH（跳过 LFS smudge）...${NC}"
+    cd "$REPO_DIR"
+    git fetch origin "$REPO_BRANCH"
+    git checkout "$REPO_BRANCH" || git checkout -b "$REPO_BRANCH" "origin/$REPO_BRANCH"
+    git reset --hard "origin/$REPO_BRANCH"
+    cd "$DEPLOY_DIR"
 fi
 
-# 核心修正：强制同步 Git LFS 大文件（防止 JAR 文件只是文本指针）
-deploy_msg "${BLUE}>>> 正在同步 Git LFS 大文件...${NC}"
-cd $REPO_DIR
-git lfs install --local
-git lfs pull
-cd $DEPLOY_DIR
+cd "$REPO_DIR"
+git config lfs.enabled false
+for asset in "${LFS_ASSETS[@]}"; do
+    download_lfs_asset "$asset"
+done
+cd "$DEPLOY_DIR"
 
 JAR_FILE="$REPO_DIR/springboot-app.jar"
 if [ ! -f "$JAR_FILE" ]; then
-    deploy_err "${RED}>>> 缺少 $JAR_FILE，请确认仓库已包含该文件且 git lfs pull 成功${NC}"
-    exit 1
-fi
-if ! file "$JAR_FILE" | grep -qE 'Java archive|Zip archive'; then
-    deploy_err "${RED}>>> springboot-app.jar 不是有效 JAR（可能仍是 LFS 指针），请执行: cd $REPO_DIR && git lfs pull${NC}"
+    deploy_err "${RED}>>> 缺少 $JAR_FILE${NC}"
     exit 1
 fi
 
