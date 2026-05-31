@@ -652,6 +652,8 @@ services:
 EOF
 
 mkdir -p "$DEPLOY_DIR/backend-data/nginx-dynamic/assets"
+# 清理历史 domain-*.conf（误把服务器 IP 当域名写入时会导致管理端 HTTP→HTTPS 死循环）
+rm -f "$DEPLOY_DIR/backend-data/nginx-dynamic/assets"/domain-*.conf 2>/dev/null || true
 # 占位 include，避免首次部署因 assets/*.conf 通配无匹配导致 nginx -t 失败
 if ! compgen -G "$DEPLOY_DIR/backend-data/nginx-dynamic/assets/*.conf" >/dev/null; then
     cat > "$DEPLOY_DIR/backend-data/nginx-dynamic/assets/00-placeholder.conf" <<'PH_EOF'
