@@ -1,12 +1,6 @@
-﻿/*
- TK Admin 初始化脚本（结构 + 基础种子数据）
-
- 说明：
- - 已合并 user_assets.entry_join_mode、vcode_inline_json 字段（原 migrations/001 与 vcode patch）
- - 仅保留用户/角色/菜单/字典/岗位等基础配置数据
- - 业务表、日志、测试数据均为空表结构
-*/
-
+﻿-- TK Admin init: schema + basic seed data
+-- Includes user_assets.entry_join_mode and vcode_inline_json
+USE `tk-admin`;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
